@@ -724,34 +724,61 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzgS7g3_yAEZA_56BtVqJ6-RRt1f_o8wMfdjzGVuLKzXvLH8Z-KiJP4E1SQLoE-edRdJw/exec';
     let clientesSheetCache = null;
 
+    // ── Comunicación con GAS — TODO por GET para evitar el problema del redirect POST→GET ──
+    // Las lecturas: GET ?action=getClients&...
+    // Las escrituras: GET ?action=write&op=syncPush&data=...
     async function fetchFromSheet(action, data = {}) {
-        const getActions = ['getClients', 'listTournaments', 'syncPull'];
-        const method = getActions.includes(action) ? 'GET' : 'POST';
-        let url = SCRIPT_URL;
-        const options = { method, redirect: 'follow', cache: 'no-cache' };
-        if (method === 'GET') {
-            url += `?action=${action}&nocache=${new Date().getTime()}`;
+        const writeActions = ['syncPush','addClient','updateClient','deleteClient',
+                              'importClients','removeDuplicates','saveTournament',
+                              'openSession','closeSession','lockTournament'];
+        const isWrite = writeActions.includes(action);
+        let url = SCRIPT_URL + '?nocache=' + Date.now();
+        if (isWrite) {
+            url += '&action=write&op=' + encodeURIComponent(action);
+            url += '&data=' + encodeURIComponent(JSON.stringify(data));
         } else {
-            const body = new FormData();
-            body.append('action', action);
-            body.append('data', JSON.stringify(data));
-            options.body = body;
+            url += '&action=' + encodeURIComponent(action);
         }
         try {
-            const response = await fetch(url, options);
-            if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
+            const response = await fetch(url, { method: 'GET', redirect: 'follow', cache: 'no-cache' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const result = await response.json();
             if (result.status === 'error') throw new Error(result.message);
             return result.data;
         } catch (error) {
-            // Solo mostrar toast para acciones del usuario, no para sync automático
             const silentActions = ['syncPush','syncPull'];
             if (!silentActions.includes(action)) {
-                console.error('Error en la operación con Sheets:', error);
-                showToast(`Error de conexión: ${error.message}`);
+                console.error('fetchFromSheet error:', error);
+                showToast(`Error: ${error.message}`);
             }
             return null;
         }
+    }
+
+    // Función específica para el sync — más directa y con logs
+    async function gasWrite(op, data) {
+        var json = JSON.stringify(data);
+        var url = SCRIPT_URL + '?action=write&op=' + encodeURIComponent(op)
+                + '&data=' + encodeURIComponent(json)
+                + '&nocache=' + Date.now();
+        syncLog('→ GAS write: '+op+' ('+json.length+'b)', '#e9c400');
+        var resp = await fetch(url, {method:'GET', redirect:'follow', cache:'no-cache'});
+        var text = await resp.text();
+        syncLog('← '+text.substring(0,100), '#bac9cc');
+        var result = JSON.parse(text);
+        if (result.status === 'error') throw new Error(result.message);
+        return result.data;
+    }
+
+    async function gasRead(action, params) {
+        var url = SCRIPT_URL + '?action=' + encodeURIComponent(action) + '&nocache=' + Date.now();
+        if (params) Object.keys(params).forEach(function(k){
+            url += '&' + k + '=' + encodeURIComponent(params[k]);
+        });
+        var resp = await fetch(url, {method:'GET', redirect:'follow', cache:'no-cache'});
+        var result = await resp.json();
+        if (result.status === 'error') throw new Error(result.message);
+        return result.data;
     }
 
     async function getClientesFromSheet() {
@@ -988,41 +1015,165 @@
     function closeRutModal(){document.getElementById("rutModal").style.display="none"}
     function openConfigModal(){renderChipConfig(),document.getElementById("configModal").style.display="flex"}
     function closeConfigModal(){document.getElementById("configModal").style.display="none"}
+    // Colores estándar de fichas de casino
+    const GITHUB_FICHAS = 'https://raw.githubusercontent.com/33Javier33/TORNEO_PTO-VARAS/main/fichas/';
+    const CHIP_PRESETS = [
+        {name:'Blanca',   hex:'#FFFFFF', textColor:'#1e293b'},
+        {name:'Roja',     hex:'#E53935', textColor:'#ffffff'},
+        {name:'Azul',     hex:'#1565C0', textColor:'#ffffff'},
+        {name:'Verde',    hex:'#2E7D32', textColor:'#ffffff'},
+        {name:'Negra',    hex:'#212121', textColor:'#ffffff'},
+        {name:'Amarilla', hex:'#FDD835', textColor:'#1e293b'},
+        {name:'Naranja',  hex:'#EF6C00', textColor:'#ffffff'},
+        {name:'Violeta',  hex:'#6A1B9A', textColor:'#ffffff'},
+        {name:'Celeste',  hex:'#0288D1', textColor:'#ffffff'},
+        {name:'Rosa',     hex:'#E91E63', textColor:'#ffffff'},
+        {name:'Café',     hex:'#6D4C41', textColor:'#ffffff'},
+        {name:'Gris',     hex:'#757575', textColor:'#ffffff'},
+    ];
+
     function renderChipConfig() {
         const container = document.getElementById("chipConfigContainer");
         container.innerHTML = "";
         const chips = getChips();
+
+        // Sugerencias de colores arriba
+        const suggestEl = document.createElement('div');
+        suggestEl.className = 'mb-3';
+        suggestEl.innerHTML = `
+            <p class="text-[10px] font-label text-[#6b7280] uppercase tracking-widest mb-2">Colores sugeridos — click para agregar:</p>
+            <div class="flex flex-wrap gap-2">
+                ${CHIP_PRESETS.map(p => `
+                    <button onclick="addChipPreset('${p.hex}','${p.name}')"
+                        title="Agregar ficha ${p.name}"
+                        style="background:${p.hex};color:${p.textColor};width:44px;height:44px;border-radius:50%;border:2px dashed rgba(255,255,255,0.25);font-size:0.55rem;font-weight:900;font-family:Manrope,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 4px rgba(0,0,0,0.4),0 2px 6px rgba(0,0,0,0.3);transition:transform 0.15s;"
+                        onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+                        ${p.name.substring(0,3)}
+                    </button>
+                `).join('')}
+            </div>
+        `;
+        container.appendChild(suggestEl);
+
+        if (chips.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'text-xs text-[#6b7280] font-label text-center py-2';
+            empty.textContent = 'No hay fichas. Presiona un color para agregar una.';
+            container.appendChild(empty);
+            return;
+        }
+
         chips.forEach((chip, index) => {
             const div = document.createElement("div");
-            div.className = "flex items-center gap-2";
-            const fullImageName = chip.image || "";
-            let displayName = fullImageName;
-            if (displayName.toLowerCase().endsWith('.png')) {
-                displayName = displayName.slice(0, -4);
-            }
+            div.className = "flex items-center gap-2 p-2 rounded-lg bg-[#0d0e14] border border-[#4a5568]/30 mb-2";
+            const textColor = isLightColor(chip.color) ? '#1e293b' : '#ffffff';
+            // Preview: si tiene imagen, mostrarla; si no, mostrar color con valor
+            const imgName = chip.image || '';
+            const previewStyle = imgName
+                ? `background-image:url('${GITHUB_FICHAS}${imgName}');background-size:cover;background-position:center;background-color:${chip.color};`
+                : `background-color:${chip.color};`;
+
             div.innerHTML = `
-                <span class="color-swatch" style="background-color: ${chip.color};" onclick="openColorModal(${index}, 'chip')"></span>
-                <input type="text" value="${formatNumberForDisplay(chip.value)}" oninput="this.value = formatNumberForDisplay(this.value.replace(/\\./g, ''))" onchange="updateChipValue(${index}, this.value)" placeholder="Valor Ficha" class="p-2 border rounded-md w-full">
-                <input type="text" value="${displayName}" onchange="updateChipImage(${index}, this.value)" placeholder="Nombre archivo (ej: roja)" class="p-2 border rounded-md w-full">
-                <button onclick="removeChip(${index})" class="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600">X</button>
+                <!-- Preview chip -->
+                <div onclick="openColorModal(${index}, 'chip')" title="Click para cambiar color"
+                    style="width:48px;height:48px;border-radius:50%;${previewStyle}color:${textColor};
+                    display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    font-weight:900;font-family:'Space Grotesk',sans-serif;flex-shrink:0;cursor:pointer;
+                    box-shadow:inset 0 0 5px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);
+                    border:3px dashed rgba(255,255,255,0.2);font-size:0.6rem;line-height:1.1;text-align:center;
+                    text-shadow:1px 1px 2px rgba(0,0,0,0.8);">
+                    ${imgName ? '' : (formatNumberForDisplay(chip.value)||'?')}
+                </div>
+                <div class="flex-1 flex flex-col gap-1 min-w-0">
+                    <div class="flex gap-1">
+                        <input type="text" value="${formatNumberForDisplay(chip.value)}"
+                            oninput="this.value=formatNumberForDisplay(this.value.replace(/\\./g,''))"
+                            onchange="updateChipValue(${index},this.value)"
+                            placeholder="Valor (ej: 1.000)"
+                            class="p-1.5 rounded-md text-sm flex-1 min-w-0">
+                    </div>
+                    <div class="flex gap-1 items-center">
+                        <input type="text" value="${imgName.replace(/\.png$/i,'')}"
+                            onchange="updateChipImage(${index},this.value)"
+                            placeholder="Imagen (ej: roja, negra, azul)"
+                            class="p-1.5 rounded-md text-xs flex-1 min-w-0"
+                            title="Nombre del archivo en carpeta /fichas/ (sin .png)">
+                        ${imgName ? `<span class="text-[10px] text-[#22c55e] font-label flex-shrink-0">✓ img</span>` : `<span class="text-[10px] text-[#4a5568] font-label flex-shrink-0">sin img</span>`}
+                    </div>
+                </div>
+                <button onclick="removeChip(${index})" class="text-red-400 hover:text-red-300 p-1 flex-shrink-0" title="Eliminar ficha">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
             `;
             container.appendChild(div);
         });
     }
-    function addChip(){let e=getChips();e.push({value:"1000",color:"#6D4C41",image:""}),saveChips(e),renderChipConfig(),showToast("Ficha añadida.",!0)}
-    function removeChip(e){let t=getChips();t.splice(e,1),saveChips(t),renderChipConfig(),showToast("Ficha eliminada.",!0)}
-    function updateChipValue(e,t){let o=getChips();o[e]&&(o[e].value=t.replace(/\./g,""),saveChips(o),showToast("Valor de ficha actualizado.",!0))}
+
+    function isLightColor(hex) {
+        if (!hex) return false;
+        var c = hex.replace('#','');
+        if (c.length === 3) c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
+        var r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+        return (0.299*r + 0.587*g + 0.114*b) > 150;
+    }
+
+    function addChipPreset(hex, name) {
+        let chips = getChips();
+        chips.push({value:'1000', color:hex, colorName:name, image:''});
+        saveChips(chips);
+        renderChipConfig();
+        if (typeof onConfigChanged === 'function') onConfigChanged();
+        showToast('Ficha '+name+' agregada.', true);
+    }
+
+    function addChip() {
+        let chips = getChips();
+        chips.push({value:'1000', color:'#6D4C41', colorName:'Café', image:''});
+        saveChips(chips);
+        renderChipConfig();
+        if (typeof onConfigChanged === 'function') onConfigChanged();
+        showToast('Ficha añadida.', true);
+    }
+
+    function removeChip(e) {
+        let chips = getChips();
+        chips.splice(e,1);
+        saveChips(chips);
+        renderChipConfig();
+        if (typeof onConfigChanged === 'function') onConfigChanged();
+        showToast('Ficha eliminada.', true);
+    }
+
+    function updateChipValue(e, t) {
+        let chips = getChips();
+        if (chips[e]) {
+            chips[e].value = t.replace(/\./g,'');
+            saveChips(chips);
+            renderChipConfig();
+            if (typeof onConfigChanged === 'function') onConfigChanged();
+            showToast('Valor actualizado.', true);
+        }
+    }
+
+    function updateChipColorName(index, value) {
+        let chips = getChips();
+        if (chips[index]) {
+            chips[index].colorName = value.trim();
+            saveChips(chips);
+            if (typeof onConfigChanged === 'function') onConfigChanged();
+        }
+    }
+
     function updateChipImage(index, value) {
         let chips = getChips();
         if (chips[index]) {
             let imageName = value.trim();
-            if (imageName && !imageName.toLowerCase().endsWith('.png')) {
-                imageName += '.png';
-            }
+            if (imageName && !imageName.toLowerCase().endsWith('.png')) imageName += '.png';
             chips[index].image = imageName;
             saveChips(chips);
-            showToast("Imagen de ficha actualizada.", true);
             renderChipConfig();
+            if (typeof onConfigChanged === 'function') onConfigChanged();
+            showToast('Imagen actualizada.', true);
         }
     }
     const classificationView=document.getElementById("classificationView"),finalView=document.getElementById("finalView"),winnersView=document.getElementById("winnersView");function showView(e){[classificationView,finalView,winnersView].forEach(e=>e.style.display="none"),e.style.display="block"}
@@ -1896,28 +2047,16 @@
             try {
                 setSyncIndicator('push','Guardando...');
                 var payload=buildPayload(actionInfo);
-                var json=JSON.stringify(payload);
-                syncLog('PUSH '+json.length+'b → GAS','#e9c400');
-                var params=new URLSearchParams();
-                params.append('action','syncPush');
-                params.append('data',json);
-                var resp=await fetch(SCRIPT_URL,{
-                    method:'POST',redirect:'follow',cache:'no-cache',
-                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                    body:params.toString()
-                });
-                var text=await resp.text();
-                syncLog('resp: '+text.substring(0,80),'#bac9cc');
-                var result=JSON.parse(text);
-                if(result.status==='success'&&result.data&&result.data.timestamp){
+                var result=await gasWrite('syncPush', payload);
+                if(result&&result.timestamp){
                     lastPushTime=Date.now();
-                    lastSyncTimestamp=result.data.timestamp;
-                    setSyncIndicator('ok','✓ '+result.data.timestamp.slice(11,16));
+                    lastSyncTimestamp=result.timestamp;
+                    setSyncIndicator('ok','✓ '+result.timestamp.slice(11,16));
                 } else {
-                    setSyncIndicator('err','Error: '+(result.message||'?'));
+                    setSyncIndicator('err','Sin respuesta');
                 }
             } catch(err){
-                setSyncIndicator('err','Sin red');
+                setSyncIndicator('err','Sin red: '+err.message);
                 syncLog('PUSH ERR: '+err.message,'#ef4444');
             }
         },800);
@@ -1969,15 +2108,11 @@
             syncLog('GET: '+resp.status+' '+((await resp.text()).substring(0,80)),'#22c55e');
         } catch(e){ syncLog('GET ERR: '+e.message,'#ef4444'); }
         try {
-            var params=new URLSearchParams();
-            params.append('action','syncPush');
-            params.append('data',JSON.stringify({tournamentType:'ruleta',clients:[],
+            var r=await gasWrite('syncPush',{tournamentType:'ruleta',clients:[],
                 pushedBy:SYNC_ROLE||'test',pushedAt:Date.now(),date:'',director:'',
-                prizePool:'0',prizes:{},limits:{},rouletteBallCount:'3'}));
-            var resp2=await fetch(SCRIPT_URL,{method:'POST',redirect:'follow',
-                headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params.toString()});
-            syncLog('POST: '+resp2.status+' '+((await resp2.text()).substring(0,100)),'#22c55e');
-        } catch(e){ syncLog('POST ERR: '+e.message,'#ef4444'); }
+                prizePool:'0',prizes:{},limits:{},rouletteBallCount:'3'});
+            syncLog('WRITE test: '+JSON.stringify(r),'#22c55e');
+        } catch(e){ syncLog('WRITE ERR: '+e.message,'#ef4444'); }
     }
 
     // ── Hooks de acciones ──────────────────────────────────────
@@ -2116,15 +2251,9 @@
         var infoBox = document.getElementById('sessionInfoBox');
 
         try {
-            var params = new URLSearchParams();
-            params.append('action', 'openSession');
-            params.append('data', JSON.stringify({key: clave, owner: nombre}));
-            var resp = await fetch(SCRIPT_URL, {
-                method:'POST', redirect:'follow',
-                headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                body: params.toString()
-            });
-            var result = await resp.json();
+            var respRaw = await gasWrite('openSession', {key: clave, owner: nombre});
+            var result = {status:'success', data: respRaw};
+            if (!respRaw) result = {status:'error', message:'Sin respuesta del servidor'};
             if (result.status === 'success') {
                 SESSION_KEY   = clave;
                 SESSION_OWNER = nombre;
@@ -2151,16 +2280,8 @@
     async function toggleTournamentLock() {
         if (!SESSION_KEY) { showToast('Sin sesión activa'); return; }
         var newLocked = !TOURNAMENT_LOCKED;
-        var params = new URLSearchParams();
-        params.append('action', 'lockTournament');
-        params.append('data', JSON.stringify({key: SESSION_KEY, locked: newLocked}));
         try {
-            var resp = await fetch(SCRIPT_URL, {
-                method:'POST', redirect:'follow',
-                headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                body: params.toString()
-            });
-            var result = await resp.json();
+            var result = {status:'success', data: await gasWrite('lockTournament', {key: SESSION_KEY, locked: newLocked})};
             if (result.status === 'success') {
                 actualizarBtnCandado(newLocked);
                 // Aplicar bloqueo local inmediatamente
@@ -2192,15 +2313,8 @@
         var clave = SESSION_KEY;
         if (!clave) return;
         try {
-            var params = new URLSearchParams();
-            params.append('action', 'closeSession');
-            params.append('data', JSON.stringify({key: clave}));
-            var resp = await fetch(SCRIPT_URL, {
-                method:'POST', redirect:'follow',
-                headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                body: params.toString()
-            });
-            var result = await resp.json();
+            var closeData = await gasWrite('closeSession', {key: clave});
+            var result = {status: closeData ? 'success' : 'error', data: closeData, message: closeData ? '' : 'Sin respuesta'};
             if (result.status === 'success') {
                 SESSION_KEY = ''; SESSION_OWNER = '';
                 sessionStorage.removeItem('supervisorSessionKey');
@@ -2279,29 +2393,16 @@
                 if (SYNC_ROLE === 'supervisor' && SESSION_KEY) {
                     payload.sessionKey = SESSION_KEY;
                 }
-                var json = JSON.stringify(payload);
-                syncLog('PUSH '+json.length+'b','#e9c400');
-                var params = new URLSearchParams();
-                params.append('action','syncPush');
-                params.append('data', json);
-                var resp = await fetch(SCRIPT_URL, {
-                    method:'POST', redirect:'follow', cache:'no-cache',
-                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                    body: params.toString()
-                });
-                var text = await resp.text();
-                syncLog('resp: '+text.substring(0,80),'#bac9cc');
-                var result = JSON.parse(text);
-                if (result.status==='success' && result.data && result.data.timestamp) {
+                var result = await gasWrite('syncPush', payload);
+                if (result && result.timestamp) {
                     lastPushTime = Date.now();
-                    lastSyncTimestamp = result.data.timestamp;
-                    setSyncIndicator('ok','✓ '+result.data.timestamp.slice(11,16));
+                    lastSyncTimestamp = result.timestamp;
+                    setSyncIndicator('ok','✓ '+result.timestamp.slice(11,16));
                 } else {
-                    setSyncIndicator('err', result.message||'Error');
-                    syncLog('ERR: '+(result.message||'?'),'#ef4444');
+                    setSyncIndicator('err','Sin respuesta');
                 }
             } catch(err) {
-                setSyncIndicator('err','Sin red');
+                setSyncIndicator('err','Sin red: '+err.message);
                 syncLog('PUSH ERR: '+err.message,'#ef4444');
             }
         }, 800);
