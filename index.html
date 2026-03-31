@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planilla de Torneos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js?v=1.0.1"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7/download.js?v=1.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js?v=1.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/plugins/MultiDrag.min.js?v=1.0.1"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: { extend: { colors: {
+                "surface-dim":"#121319","surface-container-highest":"#34343b",
+                "surface-container-high":"#292a30","surface-container":"#1e1f26",
+                "surface-container-low":"#1a1b22","surface-container-lowest":"#0d0e14",
+                "on-surface":"#e3e1ea","on-surface-variant":"#bac9cc",
+                "outline":"#849396","outline-variant":"#3b494c",
+                "primary-container":"#00e5ff","primary-fixed-dim":"#00daf3",
+                "on-primary":"#00363d","secondary-fixed-dim":"#e9c400",
+                "tertiary-fixed-dim":"#ffb4a2",
+            }, fontFamily:{
+                "headline":["Space Grotesk","sans-serif"],
+                "body":["Inter","sans-serif"],
+                "label":["Manrope","sans-serif"],
+            }}}
+        }
+    </script>
+    <style>
+        .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+        body{background-color:#121319;color:#e3e1ea;font-family:'Inter',sans-serif;min-height:100vh;}
+        .glass-card{background:rgba(30,31,38,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(59,73,76,0.5);}
+
+        /* Inputs y selects — mayor contraste */
+        input[type="text"],input[type="password"],input[type="date"],input[type="time"],input[type="number"],input[type="tel"],select,textarea{
+            background-color:#0d0e14 !important;border:1px solid #4a5568 !important;
+            color:#e3e1ea !important;border-radius:0.5rem;padding:0.5rem 0.75rem;
+        }
+        input::placeholder,textarea::placeholder{color:#6b7280 !important;}
+        input:focus,select:focus,textarea:focus{outline:none !important;border-color:#00daf3 !important;box-shadow:0 0 0 2px rgba(0,218,243,0.2) !important;}
+        select option{background:#0d0e14;color:#e3e1ea;}
+
+        /* Labels con mejor contraste */
+        label{color:#d1d5db;}
+
+        /* Score input */
+        .score-input{border:1px solid #4a5568 !important;border-radius:6px;padding:4px;width:100%;background-color:#0d0e14 !important;text-align:center;color:#e3e1ea;font-family:'Space Grotesk',sans-serif;}
+        .score-input:focus{outline:none;border-color:#00daf3 !important;box-shadow:0 0 0 2px rgba(0,218,243,0.2);}
+
+        /* Modal */
+        .modal-container{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center;z-index:50;backdrop-filter:blur(4px);}
+        .modal-content{background:#1a1b22;border:1px solid #4a5568;padding:2rem;border-radius:1rem;box-shadow:0 25px 50px rgba(0,0,0,0.6);max-width:90%;width:500px;position:relative;max-height:90vh;overflow-y:auto;animation:modalIn 0.25s ease forwards;}
+        .close-btn{position:absolute;top:1rem;right:1.5rem;font-size:2rem;color:#9ca3af;cursor:pointer;transition:color 0.2s;}
+        .close-btn:hover{color:#00daf3;}
+        @keyframes modalIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+
+        /* Toast */
+        .toast{visibility:hidden;min-width:260px;background:#1e1f26;border:1px solid #4a5568;color:#e3e1ea;text-align:center;border-radius:8px;padding:12px 20px;position:fixed;z-index:200;left:50%;transform:translateX(-50%);bottom:30px;transition:all 0.4s ease-out;opacity:0;font-family:'Manrope',sans-serif;font-size:0.85rem;}
+        .toast.success{border-color:#00daf3;color:#00daf3;}
+        .toast.show{visibility:visible;opacity:1;bottom:50px;}
+
+        /* Tabla participantes */
+        #clientTable{width:100%;border-collapse:separate;border-spacing:0 3px;}
+        #clientTable thead tr th{background:#0d0e14;color:#d1d5db;font-family:'Manrope',sans-serif;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.18em;padding:0.6rem 0.75rem;font-weight:700;}
+        #clientTable thead tr th:first-child{border-radius:0.5rem 0 0 0.5rem;}
+        #clientTable thead tr th:last-child{border-radius:0 0.5rem 0.5rem 0;}
+        .player-row td{padding:0.5rem 0.75rem;background:rgba(26,27,34,0.9);border:none;font-size:0.82rem;transition:background 0.15s;color:#e3e1ea;}
+        .player-row td:first-child{border-radius:0.5rem 0 0 0.5rem;}
+        .player-row td:last-child{border-radius:0 0.5rem 0.5rem 0;}
+        .player-row.selected td{background:rgba(0,218,243,0.22) !important;cursor:grab;border-top:1px solid rgba(0,218,243,0.35);border-bottom:1px solid rgba(0,218,243,0.35);}
+        .player-row.selected td:first-child{border-left:3px solid #00daf3;}
+        .player-row.selected:active td{cursor:grabbing;}
+        .player-row:hover td{background:rgba(41,42,48,0.95);}
+        .sortable-ghost td{opacity:0.4;background:rgba(0,218,243,0.08);}
+
+        /* Separador de mesa */
+        .table-break-row td{text-align:center;font-weight:700;color:#00daf3;background:rgba(0,218,243,0.08);padding:0.5rem;font-family:'Manrope',sans-serif;font-size:0.75rem;letter-spacing:0.1em;border-radius:0.5rem;}
+
+        /* Header de mesa */
+        .table-header-row td{background:#0d0e14;color:#d1d5db;font-family:'Manrope',sans-serif;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.2em;padding:0.4rem 0.75rem;font-weight:700;border-radius:0.5rem;}
+
+        /* Color swatch */
+        .color-swatch{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid rgba(255,255,255,0.15);transition:all 0.2s;box-shadow:0 0 6px rgba(0,0,0,0.4);}
+        .color-swatch:hover{transform:scale(1.2);border-color:rgba(0,218,243,0.6);}
+        .color-palette{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;}
+
+        /* Theme switch */
+        .theme-switch{position:relative;display:inline-block;width:52px;height:28px;}
+        .theme-switch input{opacity:0;width:0;height:0;}
+        .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#374151;transition:.3s;border-radius:34px;}
+        .slider:before{position:absolute;content:"";height:20px;width:20px;left:4px;bottom:4px;background-color:#d1d5db;transition:.3s;border-radius:50%;}
+        input:checked + .slider{background-color:#00daf3;}
+        input:checked + .slider:before{transform:translateX(24px);background:#00363d;}
+
+        /* Password toggle */
+        .password-container{position:relative;}
+        .toggle-password{position:absolute;top:50%;right:10px;transform:translateY(-50%);cursor:pointer;color:#9ca3af;}
+
+        /* Spinner botones */
+        .btn-loading{position:relative;pointer-events:none;opacity:0.75;}
+        .btn-loading .btn-text{visibility:hidden;}
+        .btn-loading::after{content:'';position:absolute;width:14px;height:14px;top:50%;left:50%;margin:-7px 0 0 -7px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:btnSpin 0.7s linear infinite;}
+        @keyframes btnSpin{to{transform:rotate(360deg)}}
+
+        /* Animaciones */
+        tbody tr{animation:rowIn 0.25s ease forwards;}
+        @keyframes rowIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+
+        /* Menú móvil */
+        #mobileMenu{transition:transform 0.3s ease,opacity 0.3s ease;}
+        #mobileMenu.hidden{display:none;}
+        #mobileMenuOverlay{transition:opacity 0.3s ease;}
+
+        /* Scroll */
+        ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0d0e14}::-webkit-scrollbar-thumb{background:#4a5568;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#00daf3}
+
+        /* Sync */
+        #syncIndicator.active { display:flex !important; }
+        .sync-dot-ok { background:#22c55e !important; box-shadow:0 0 6px rgba(34,197,94,0.5); }
+        .sync-dot-push { background:#e9c400 !important; animation:syncPulse 0.8s infinite; }
+        .sync-dot-pull { background:#00daf3 !important; animation:syncPulse 0.8s infinite; }
+        .sync-dot-err { background:#ef4444 !important; }
+        @keyframes syncPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* Banner modo lectura */
+        #readonlyBanner { display:none; }
+        #readonlyBanner.show { display:flex; }
+        body.readonly-mode #clientTable input,
+        body.readonly-mode #clientTable button,
+        body.readonly-mode #clientTable select { pointer-events:none; opacity:0.5; }
+        body.readonly-mode #addButton { pointer-events:none; opacity:0.5; }
+        body.readonly-mode .glass-card button:not(#syncBtn) { pointer-events:none; opacity:0.5; }
+
+        /* Operador — bloquear solo config, no tabla */
+        body.operator-mode [onclick*="openConfigModal"] { pointer-events:none !important; opacity:0.4 !important; }
+        /* ═══ RESPONSIVE MÓVIL ════════════════════════════════════ */
+
+        /* Tabla: reducir padding en móvil */
+        @media (max-width: 640px) {
+            #clientTable thead tr th { padding: 0.45rem 0.4rem; font-size: 0.55rem; letter-spacing: 0.08em; }
+            .player-row td { padding: 0.45rem 0.4rem; font-size: 0.75rem; }
+            .score-input { padding: 3px 2px; font-size: 0.75rem; min-width: 44px; }
+
+            /* Stats en 2 columnas en móvil */
+            #statsContainer { grid-template-columns: repeat(3,1fr) !important; gap: 0.4rem !important; }
+            #statsContainer > div { padding: 0.5rem !important; }
+            #statsContainer p { font-size: 1.2rem !important; }
+            #statsContainer p.text-\[10px\] { font-size: 0.55rem !important; }
+
+            /* Panel añadir — full width stack */
+            #addNombre, #addApellido, #addRut, #addTipoCupon { min-width: 0 !important; width: 100% !important; }
+
+            /* Botones acción planilla más chicos */
+            .player-row td:last-child button { padding: 2px 6px !important; font-size: 0.65rem !important; }
+
+            /* Modal full screen en móvil */
+            .modal-content { padding: 1.25rem !important; border-radius: 0.75rem !important; width: 100% !important; max-width: 100% !important; margin: 0.5rem !important; }
+
+            /* Título torneo más chico */
+            #mainTournamentTitle { font-size: 1.25rem !important; }
+        }
+
+        /* Tabla: hacer scroll horizontal visible claramente */
+        .table-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-scroll-wrap::-webkit-scrollbar { height: 3px; }
+        .table-scroll-wrap::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 99px; }
+
+        /* Safe area para iPhone (notch/home bar) */
+        body { padding-bottom: env(safe-area-inset-bottom, 0); }
+        header { padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem)); }
+    </style>
+</head>
+<body class="bg-surface-dim text-on-surface font-body min-h-screen">
+
+    <!-- Header sticky con menú hamburguesa -->
+    <header class="bg-[#0d0e14] border-b border-[#4a5568]/30 sticky top-0 z-40 shadow-[0_2px_20px_rgba(0,218,243,0.05)]">
+        <div class="flex justify-between items-center px-4 py-3 max-w-[1400px] mx-auto">
+            <!-- Logo / título -->
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#00daf3]" style="font-variation-settings:'FILL' 1">emoji_events</span>
+                <span class="font-headline font-black text-base text-on-surface tracking-tight uppercase">Planilla</span>
+                <span id="headerTournamentName" class="hidden sm:inline font-label text-xs text-[#bac9cc] uppercase tracking-widest ml-1"></span>
+            </div>
+
+            <!-- Botones desktop -->
+            <nav class="hidden md:flex items-center gap-2">
+                <!-- Indicador sync -->
+                <div id="syncIndicator" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#4a5568]/40 text-xs font-label">
+                    <span id="syncDot" class="w-2 h-2 rounded-full bg-[#4a5568] transition-colors"></span>
+                    <span id="syncLabel" class="text-[#6b7280]">Sin sync</span>
+                </div>
+                <!-- Botón notificaciones -->
+                <div class="relative">
+                    <button onclick="toggleNotifPanel()" class="relative flex items-center justify-center w-9 h-9 rounded-lg border border-[#4a5568] text-[#bac9cc] hover:border-[#00daf3] hover:text-[#00daf3] transition-all">
+                        <span class="material-symbols-outlined text-sm">notifications</span>
+                        <span id="syncNotifBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-[#00daf3] text-[#00363d] text-[9px] font-black rounded-full flex items-center justify-center"></span>
+                    </button>
+                    <!-- Panel dropdown notificaciones -->
+                    <div id="syncNotifDropdown" class="hidden absolute right-0 top-11 w-72 bg-[#1a1b22] border border-[#4a5568]/50 rounded-xl shadow-2xl z-50 overflow-hidden">
+                        <div class="flex items-center justify-between px-3 py-2 border-b border-[#4a5568]/30">
+                            <span class="text-[10px] font-label font-bold text-[#6b7280] uppercase tracking-widest">Actividad reciente</span>
+                            <button onclick="syncNotifications=[];renderSyncNotifications();document.getElementById('syncNotifBadge').classList.add('hidden')" class="text-[10px] text-[#4a5568] hover:text-[#bac9cc] font-label">Limpiar</button>
+                        </div>
+                        <div id="syncNotifPanel" class="px-3 py-1 max-h-52 overflow-y-auto">
+                            <p class="text-[#4a5568] text-xs font-label text-center py-3">Sin actividad reciente</p>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="toggleSyncMode()" id="syncBtn"
+                    class="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#4a5568] text-[#bac9cc] hover:border-[#00daf3] hover:text-[#00daf3] transition-all text-xs font-label font-bold uppercase tracking-wide">
+                    <span class="material-symbols-outlined text-sm">sync</span> Sync
+                </button>
+                <button onclick="promptForBaseAccess()" class="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#4a5568] text-[#d1d5db] hover:border-[#00daf3] hover:text-[#00daf3] transition-all text-xs font-label font-bold uppercase tracking-wide">
+                    <span class="material-symbols-outlined text-sm">group</span> Base de Datos
+                </button>
+                <a href="torneo/index.html" class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#00daf3] text-[#00363d] font-label font-bold text-xs uppercase tracking-wide hover:brightness-110 transition-all active:scale-95">
+                    <span class="material-symbols-outlined text-sm">tv</span> Ver Torneo
+                </a>
+            </nav>
+
+            <!-- Hamburguesa móvil -->
+            <button id="hamburgerBtn" onclick="toggleMobileMenu()" class="md:hidden flex flex-col justify-center items-center w-9 h-9 rounded-lg border border-[#4a5568] hover:border-[#00daf3] transition-all gap-1.5 p-2">
+                <span class="block w-full h-0.5 bg-[#d1d5db] transition-all" id="hb1"></span>
+                <span class="block w-full h-0.5 bg-[#d1d5db] transition-all" id="hb2"></span>
+                <span class="block w-full h-0.5 bg-[#d1d5db] transition-all" id="hb3"></span>
+            </button>
+        </div>
+
+        <!-- Menú móvil desplegable -->
+        <div id="mobileMenu" class="hidden md:hidden bg-[#0d0e14] border-t border-[#4a5568]/30 px-4 py-3 flex flex-col gap-2">
+            <button onclick="toggleSyncMode(); closeMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#e9c400]/30 text-[#e9c400] hover:bg-[#e9c400]/10 transition-all text-sm font-label font-bold w-full text-left">
+                <span class="material-symbols-outlined">sync</span> Conectar / Sync
+            </button>
+            <button onclick="promptForBaseAccess(); closeMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#4a5568] text-[#d1d5db] hover:border-[#00daf3] hover:text-[#00daf3] transition-all text-sm font-label font-bold w-full text-left">
+                <span class="material-symbols-outlined">group</span> Base de Datos
+            </button>
+            <a href="torneo/index.html" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#00daf3] text-[#00363d] font-label font-bold text-sm w-full">
+                <span class="material-symbols-outlined">tv</span> Ver Torneo
+            </a>
+            <hr class="border-[#4a5568]/30 my-1">
+            <button onclick="openConfigModal(); closeMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#4a5568] text-[#d1d5db] hover:border-[#9ca3af] transition-all text-sm font-label font-bold w-full text-left">
+                <span class="material-symbols-outlined">settings</span> Configuración
+            </button>
+            <button onclick="openHelpModal(); closeMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#4a5568]/50 text-[#bac9cc] hover:border-[#00daf3] hover:text-[#00daf3] transition-all text-sm font-label font-bold w-full text-left">
+                <span class="material-symbols-outlined">help_outline</span> Ayuda
+            </button>
+        </div>
+    </header>
+
+    <div id="rutModal" class="modal-container"><div id="modalContent" class="modal-content"></div></div>
+    
+    <!-- Modal de Contraseña Mejorado -->
+    <div id="passwordModal" class="modal-container">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePasswordModal()">&times;</span>
+
+            <!-- Vista de Login (por defecto) -->
+            <div id="loginView">
+                <h2 class="text-xl font-bold mb-4">Acceso a Base de Datos</h2>
+                <p class="mb-4 text-gray-600">Para proteger la información, por favor ingresa el código de acceso.</p>
+                <div class="password-container mb-4">
+                    <input type="password" id="passwordInput" placeholder="Código de acceso" class="w-full p-2 border rounded-md pr-10">
+                    <span class="toggle-password" onclick="togglePasswordVisibility('passwordInput', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                          <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                        </svg>
+                    </span>
+                </div>
+                <button onclick="checkPassword()" class="w-full bg-blue-600 text-white py-2 rounded-md font-bold hover:bg-blue-700 transition-colors">Verificar</button>
+                <div class="mt-4 text-sm text-center">
+                    <a href="#" onclick="event.preventDefault(); showChangePasswordView();" class="text-blue-600 hover:underline">Cambiar código</a> |
+                    <a href="#" onclick="event.preventDefault(); showForgotPasswordView();" class="text-gray-600 hover:underline">Olvidé mi código</a>
+                </div>
+            </div>
+
+            <!-- Vista para Cambiar Contraseña (oculta) -->
+            <div id="changePasswordView" class="hidden">
+                <h2 class="text-xl font-bold mb-4">Cambiar Código de Acceso</h2>
+                <div class="password-container mb-2">
+                    <input type="password" id="currentPasswordInput" placeholder="Código Actual" class="w-full p-2 border rounded-md pr-10">
+                     <span class="toggle-password" onclick="togglePasswordVisibility('currentPasswordInput', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                    </span>
+                </div>
+                <div class="password-container mb-2">
+                    <input type="password" id="newPasswordInput" placeholder="Nuevo Código (mín. 4 caracteres)" class="w-full p-2 border rounded-md pr-10">
+                     <span class="toggle-password" onclick="togglePasswordVisibility('newPasswordInput', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                    </span>
+                </div>
+                <div class="password-container mb-4">
+                    <input type="password" id="confirmNewPasswordInput" placeholder="Confirmar Nuevo Código" class="w-full p-2 border rounded-md pr-10">
+                     <span class="toggle-password" onclick="togglePasswordVisibility('confirmNewPasswordInput', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                    </span>
+                </div>
+                <button onclick="changePassword()" class="w-full bg-green-600 text-white py-2 rounded-md font-bold hover:bg-green-700 transition-colors">Guardar Nuevo Código</button>
+                 <div class="mt-4 text-sm text-center">
+                    <a href="#" onclick="event.preventDefault(); showLoginView();" class="text-blue-600 hover:underline">&larr; Volver a Acceso</a>
+                </div>
+            </div>
+
+            <!-- Vista para Recuperar Contraseña (oculta) -->
+            <div id="forgotPasswordView" class="hidden">
+                <h2 class="text-xl font-bold mb-4">Restablecer Código</h2>
+                <p class="mb-4 text-gray-600">Ingresa el código maestro para restablecer el acceso al código predeterminado (`Supervisor`).</p>
+                <div class="password-container mb-4">
+                    <input type="password" id="masterCodeInput" placeholder="Código Maestro" class="w-full p-2 border rounded-md pr-10">
+                     <span class="toggle-password" onclick="togglePasswordVisibility('masterCodeInput', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                    </span>
+                </div>
+                <button onclick="resetPassword()" class="w-full bg-orange-500 text-white py-2 rounded-md font-bold hover:bg-orange-600 transition-colors">Restablecer</button>
+                <div class="mt-4 text-sm text-center">
+                    <a href="#" onclick="event.preventDefault(); showLoginView();" class="text-blue-600 hover:underline">&larr; Volver a Acceso</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="editModal" class="modal-container">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h2 class="text-xl font-bold mb-4">Editar Participante</h2>
+            <input type="hidden" id="editIndex">
+            <div class="mb-4"><label class="block font-bold mb-1">Nombre:</label><p id="editNombre" class="p-2 bg-gray-100 rounded"></p></div>
+            <div class="mb-4"><label class="block font-bold mb-1">RUT:</label><p id="editRut" class="p-2 bg-gray-100 rounded"></p></div>
+            <div class="mb-4">
+                <label for="editTipoCupon" class="block font-bold mb-1">Tipo:</label>
+                <select id="editTipoCupon" class="w-full p-2 border rounded-md">
+                    <option value="ninguno">Ninguno</option>
+                    <option value="sorteo">Cupón Sorteo (CS)</option>
+                    <option value="canje">Ticket Canje (TC)</option>
+                </select>
+            </div>
+            <button onclick="saveClientChanges()" class="w-full bg-blue-600 text-white py-2 rounded-md font-bold hover:bg-blue-700 transition-colors">Guardar Cambios</button>
+        </div>
+    </div>
+
+    <div id="configModal" class="modal-container">
+        <div class="modal-content" style="width: 800px; max-width: 95%;">
+            <span class="close-btn" onclick="closeConfigModal()">&times;</span>
+            <h2 class="text-2xl font-bold mb-6 text-blue-900 border-b pb-2">Configuración del Torneo</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div><label for="tournamentSelector" class="block font-bold text-lg mb-2">Seleccionar Torneo:</label><select id="tournamentSelector" onchange="changeTournament()" class="p-2 border rounded-md w-full"></select></div>
+                <div id="rouletteConfig"><label for="rouletteBallCount" class="block font-bold text-lg mb-2">Nº Bolitas:</label><input type="number" id="rouletteBallCount" value="3" min="1" max="10" class="p-2 border rounded-md w-full" onchange="saveRouletteConfig()"></div>
+                <div><label for="tournamentDate" class="block font-bold text-lg mb-2">Fecha:</label><div class="flex gap-2"><input type="date" id="tournamentDate" class="p-2 border rounded-md w-full" onchange="saveDateToLocalStorage()" oninput="saveDateToLocalStorage()"><button onclick="saveDateToLocalStorage()" class="px-3 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 transition-colors whitespace-nowrap">✔ Aplicar</button></div></div>
+                <div><label for="registrationEndTime" class="block font-bold text-lg mb-2">Hora Cierre Inscripción:</label><input type="time" id="registrationEndTime" class="p-2 border rounded-md w-full" onchange="saveEndTime()"></div>
+                <div class="md:col-span-2"><label for="tournamentDirector" class="block font-bold text-lg mb-2">Nombre del Encargado:</label><input type="text" id="tournamentDirector" placeholder="Nombre y Apellido" class="p-2 border rounded-md w-full" onchange="saveDirectorName()"></div>
+            </div>
+            <h3 class="text-xl font-bold mb-4 text-blue-900 border-b pb-2">Premios</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div><label for="prizePoolInput" class="block font-bold mb-1">Pozo Total $:</label><input type="text" id="prizePoolInput" placeholder="Ej: 500.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); savePrizePool();"></div>
+                <div><label for="firstPrize" class="block font-bold mb-1">1er Lugar $:</label><input type="text" id="firstPrize" placeholder="Ej: 250.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); savePrizes();"></div>
+                <div><label for="secondPrize" class="block font-bold mb-1">2do Lugar $:</label><input type="text" id="secondPrize" placeholder="Ej: 150.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); savePrizes();"></div>
+                <div><label for="thirdPrize" class="block font-bold mb-1">3er Lugar $:</label><input type="text" id="thirdPrize" placeholder="Ej: 100.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); savePrizes();"></div>
+            </div>
+            <div id="gameSpecificConfig">
+                <h3 class="text-xl font-bold mb-4 text-blue-900 border-b pb-2">Límites del Juego</h3>
+                <div id="pokerBlackjackConfig" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 hidden">
+                    <div><label for="minBetInput" class="block font-bold mb-1">Apuesta Mínima $:</label><input type="text" id="minBetInput" placeholder="Ej: 5.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); saveGameLimits();"></div>
+                    <div><label for="maxBetInput" class="block font-bold mb-1">Apuesta Máxima $:</label><input type="text" id="maxBetInput" placeholder="Ej: 50.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); saveGameLimits();"></div>
+                </div>
+                <div id="rouletteLimitsConfig" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 hidden">
+                    <div><label for="minPlenoInput" class="block font-bold mb-1">Mínimo Pleno $:</label><input type="text" id="minPlenoInput" placeholder="Ej: 1.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); saveGameLimits();"></div>
+                    <div><label for="maxPlenoInput" class="block font-bold mb-1">Máximo Pleno $:</label><input type="text" id="maxPlenoInput" placeholder="Ej: 10.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); saveGameLimits();"></div>
+                </div>
+            </div>
+            <div id="chipConfigSection" class="border-t border-outline-variant/30 pt-4 mt-4 hidden">
+                <h3 class="font-headline font-bold text-sm uppercase tracking-widest text-primary-fixed-dim mb-3">Fichas del Torneo (Poker/Blackjack)</h3>
+                <div id="chipConfigContainer" class="space-y-2 mb-2"></div>
+                <button onclick="addChip()" class="flex items-center gap-1 px-4 py-1.5 rounded-lg border border-primary-fixed-dim/40 text-primary-fixed-dim hover:bg-primary-fixed-dim/10 transition-all text-xs font-label font-bold">
+                    <span class="material-symbols-outlined text-sm">add</span> Añadir Ficha
+                </button>
+            </div>
+            <div class="border-t border-outline-variant/30 pt-4 mt-4">
+                <h3 class="font-headline font-bold text-sm uppercase tracking-widest text-on-surface-variant mb-3">Archivos</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="saveTournamentToFile()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-primary-fixed-dim/40 text-primary-fixed-dim hover:bg-primary-fixed-dim/10 transition-all text-xs font-label font-bold">
+                        <span class="material-symbols-outlined text-sm">save</span> Guardar Torneo
+                    </button>
+                    <button onclick="saveTournamentToSheets()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-[#00daf3]/40 text-[#00daf3] hover:bg-[#00daf3]/10 transition-all text-xs font-label font-bold">
+                        <span class="material-symbols-outlined text-sm">cloud_upload</span> Guardar en Sheets
+                    </button>
+                    <button onclick="openRecoverModal()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-[#e9c400]/40 text-[#e9c400] hover:bg-[#e9c400]/10 transition-all text-xs font-label font-bold">
+                        <span class="material-symbols-outlined text-sm">cloud_download</span> Recuperar Torneo
+                    </button>
+                    <button onclick="document.getElementById('loadTournamentInput').click()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-secondary-fixed-dim/40 text-secondary-fixed-dim hover:bg-secondary-fixed-dim/10 transition-all text-xs font-label font-bold">
+                        <span class="material-symbols-outlined text-sm">upload_file</span> Cargar Torneo
+                    </button>
+                    <input type="file" id="loadTournamentInput" class="hidden" accept=".json" onchange="loadTournamentFromFile(event)">
+                    <button onclick="hardReset()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all text-xs font-label font-bold">
+                        <span class="material-symbols-outlined text-sm">restart_alt</span> Reinicio Forzado
+                    </button>
+                </div>
+            </div>
+            <div class="border-t border-outline-variant/30 pt-4 mt-4">
+                <h3 class="font-headline font-bold text-sm uppercase tracking-widest text-on-surface-variant mb-3">Pantalla del Torneo</h3>
+                <div class="flex items-center justify-between mb-3">
+                    <label class="text-sm font-label text-on-surface-variant">Modo Oscuro</label>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="themeSwitch" onchange="toggleThemeCommand()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-4 border-t border-outline-variant/30 pt-4">
+                <button onclick="sendFullscreenCommand()" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-primary-fixed-dim text-on-primary font-label font-bold text-xs hover:brightness-110 transition-all active:scale-95">
+                    <span class="material-symbols-outlined text-sm">fullscreen</span> Pantalla Completa
+                </button>
+                <button onclick="exportToPDF({isFinalReport: false})" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all text-xs font-label font-bold">
+                    <span class="material-symbols-outlined text-sm">picture_as_pdf</span> Exportar PDF
+                </button>
+                <button onclick="startFinal()" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-secondary-fixed-dim text-on-secondary font-headline font-bold text-xs hover:brightness-110 transition-all active:scale-95">
+                    <span class="material-symbols-outlined text-sm">sports_score</span> Iniciar Final
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Recuperar Torneo -->
+    <div id="recoverModal" class="modal-container">
+        <div class="modal-content" style="width:600px;max-width:95%;">
+            <span class="close-btn" onclick="closeRecoverModal()">&times;</span>
+            <div class="flex items-center gap-3 mb-4 border-b border-[#4a5568]/40 pb-3">
+                <span class="material-symbols-outlined text-[#e9c400] text-2xl" style="font-variation-settings:'FILL' 1">history</span>
+                <div>
+                    <h2 class="font-headline font-bold text-lg text-on-surface">Recuperar Torneo</h2>
+                    <p class="text-xs font-label text-on-surface-variant">Torneos guardados en Google Sheets</p>
+                </div>
+            </div>
+            <div id="recoverList" class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                <p class="text-center text-on-surface-variant text-sm py-6 font-label">Cargando torneos guardados...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal selección de rol — OBLIGATORIO al abrir -->
+    <div id="roleModal" class="modal-container" style="backdrop-filter:blur(8px)">
+        <div class="modal-content" style="width:480px;max-width:95%;">
+            <!-- Sin botón de cerrar — rol obligatorio -->
+            <div class="flex items-center gap-3 mb-2 border-b border-[#4a5568]/40 pb-3">
+                <span class="material-symbols-outlined text-[#00daf3] text-2xl" style="font-variation-settings:'FILL' 1">sync</span>
+                <div>
+                    <h2 class="font-headline font-bold text-lg text-on-surface">¿Con qué rol ingresás?</h2>
+                    <p class="text-xs font-label text-[#6b7280]">Selecciona tu rol para conectarte al torneo</p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <button onclick="selectRole('supervisor')"
+                    class="w-full flex items-center gap-4 p-4 rounded-xl border border-[#e9c400]/30 hover:border-[#e9c400] hover:bg-[#e9c400]/08 transition-all text-left">
+                    <span class="material-symbols-outlined text-[#e9c400] text-3xl flex-shrink-0" style="font-variation-settings:'FILL' 1">admin_panel_settings</span>
+                    <div>
+                        <p class="font-headline font-bold text-sm text-[#e9c400]">👑 Supervisor</p>
+                        <p class="text-xs font-label text-[#6b7280] mt-0.5">Acceso total — config, participantes, puntajes</p>
+                    </div>
+                </button>
+                <button onclick="selectRole('operador')"
+                    class="w-full flex items-center gap-4 p-4 rounded-xl border border-[#00daf3]/30 hover:border-[#00daf3] hover:bg-[#00daf3]/08 transition-all text-left">
+                    <span class="material-symbols-outlined text-[#00daf3] text-3xl flex-shrink-0" style="font-variation-settings:'FILL' 1">manage_accounts</span>
+                    <div>
+                        <p class="font-headline font-bold text-sm text-[#00daf3]">🎮 Operador</p>
+                        <p class="text-xs font-label text-[#6b7280] mt-0.5">Participantes y puntajes — sin configuración</p>
+                    </div>
+                </button>
+                <button onclick="selectRole('lectura')"
+                    class="w-full flex items-center gap-4 p-4 rounded-xl border border-[#4a5568]/40 hover:border-[#bac9cc]/50 transition-all text-left">
+                    <span class="material-symbols-outlined text-[#bac9cc] text-3xl flex-shrink-0" style="font-variation-settings:'FILL' 1">visibility</span>
+                    <div>
+                        <p class="font-headline font-bold text-sm text-[#bac9cc]">👁 Solo Lectura</p>
+                        <p class="text-xs font-label text-[#6b7280] mt-0.5">Solo visualiza — no puede editar nada</p>
+                    </div>
+                </button>
+            </div>
+            <p class="text-[10px] font-label text-[#4a5568] text-center mt-4">Sincronización automática cada ~4 segundos vía Google Sheets</p>
+        </div>
+    </div>
+
+    <!-- Panel diagnóstico sync (visible solo cuando sync activo) -->
+    <div id="syncDebugPanel" class="hidden w-full bg-[#0d0e14] border-b border-[#4a5568]/30 px-4 py-2">
+        <div class="max-w-[1400px] mx-auto">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-label text-[#4a5568] uppercase tracking-widest">Log de sync</span>
+                <div class="flex gap-2">
+                    <button onclick="testSyncConnection()" class="text-[10px] font-label font-bold text-[#00daf3] border border-[#00daf3]/30 px-2 py-0.5 rounded hover:bg-[#00daf3]/10 transition-all">
+                        Probar conexión
+                    </button>
+                    <button onclick="document.getElementById('syncDebugPanel').classList.add('hidden')" class="text-[10px] text-[#4a5568] font-label">Cerrar</button>
+                </div>
+            </div>
+            <div id="syncDebugBox" class="bg-[#121319] rounded p-2 max-h-28 overflow-y-auto text-[11px] font-mono text-[#bac9cc]">
+                <div style="color:#4a5568">-- esperando actividad --</div>
+            </div>
+        </div>
+    </div>
+    <div id="readonlyBanner" class="w-full bg-[#e9c400]/10 border-b border-[#e9c400]/30 px-4 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-[#e9c400] text-xs font-label font-bold">
+            <span class="material-symbols-outlined text-sm">info</span>
+            <span id="readonlyBannerLabel">Modo activo</span>
+            <span id="readonlyTimestamp" class="text-[#e9c400]/60 font-normal ml-2"></span>
+        </div>
+        <button onclick="document.getElementById('roleModal').style.display='flex'" class="text-[10px] font-label font-bold text-[#e9c400] border border-[#e9c400]/40 px-2 py-1 rounded hover:bg-[#e9c400]/10 transition-all">
+            Cambiar rol
+        </button>
+    </div>
+
+    <div id="colorModal" class="modal-container">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeColorModal()">&times;</span>
+            <h2 class="font-headline font-bold text-lg text-on-surface mb-1">Color de Mesa</h2>
+            <p class="text-xs font-label text-on-surface-variant mb-4">Cada color tiene nombre y símbolo para identificarlo sin depender del color.</p>
+            <div id="colorModalPalette" class="color-palette justify-center"></div>
+        </div>
+    </div>
+    
+    <div id="vipReportModal" class="modal-container">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeVipReportModal()">&times;</span>
+            <h2 class="font-headline font-bold text-lg text-on-surface mb-2">Generar Informe VIP</h2>
+            <p class="text-sm text-on-surface-variant font-body mb-5">¿Cómo registrar las entradas especiales en el informe?</p>
+            <div class="flex gap-3">
+                <button id="vipReportCouponsBtn" class="flex-1 py-3 rounded-lg bg-primary-fixed-dim text-on-primary font-headline font-bold text-sm hover:brightness-110 transition-all active:scale-95">Con Cupones</button>
+                <button id="vipReportInvitesBtn" class="flex-1 py-3 rounded-lg border border-secondary-fixed-dim/40 text-secondary-fixed-dim font-headline font-bold text-sm hover:bg-secondary-fixed-dim/10 transition-all">Con Invitaciones</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="py-4 text-center border-t border-outline-variant/10 mt-4">
+        <p class="text-[10px] font-label text-on-surface-variant/40 uppercase tracking-widest">CarlosPN Interactive®</p>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+
+    <div class="w-full max-w-[1400px] mx-auto px-4 pt-4 pb-6">
+        <div id="classificationView">
+            <!-- Header torneo -->
+            <div class="text-center mb-5">
+                <h1 id="mainTournamentTitle" class="font-headline font-black text-3xl text-on-surface tracking-tighter uppercase mb-1">Planilla de Torneos</h1>
+                <p id="mainDateDisplay" class="text-xs font-label text-on-surface-variant uppercase tracking-widest"></p>
+            </div>
+
+            <!-- Stats -->
+            <div id="statsContainer" class="grid grid-cols-3 gap-2 mb-4 max-w-2xl mx-auto">
+                <div class="glass-card rounded-xl border border-outline-variant/20 p-2 sm:p-3 text-center">
+                    <p class="text-[9px] sm:text-[10px] font-label text-on-surface-variant uppercase tracking-widest mb-0.5">Jugadores</p>
+                    <p id="totalCount" class="font-headline text-xl sm:text-2xl font-bold text-primary-fixed-dim">0</p>
+                </div>
+                <div class="glass-card rounded-xl border border-outline-variant/20 p-2 sm:p-3 text-center">
+                    <p class="text-[9px] sm:text-[10px] font-label text-on-surface-variant uppercase tracking-widest mb-0.5">CS</p>
+                    <p id="sorteoCount" class="font-headline text-xl sm:text-2xl font-bold text-secondary-fixed-dim">0</p>
+                </div>
+                <div class="glass-card rounded-xl border border-outline-variant/20 p-2 sm:p-3 text-center">
+                    <p class="text-[9px] sm:text-[10px] font-label text-on-surface-variant uppercase tracking-widest mb-0.5">TC</p>
+                    <p id="canjeCount" class="font-headline text-xl sm:text-2xl font-bold text-tertiary-fixed-dim">0</p>
+                </div>
+            </div>
+
+            <!-- Panel añadir -->
+            <div class="glass-card rounded-xl border border-outline-variant/20 p-4 mb-3">
+                <div class="flex justify-between items-start sm:items-center mb-3 flex-wrap gap-2">
+                    <h2 class="font-headline font-bold text-sm uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
+                        <span class="w-4 h-[2px] bg-primary-fixed-dim"></span> Añadir
+                    </h2>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button onclick="clearAllParticipants()" class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all text-xs font-label font-bold">
+                            <span class="material-symbols-outlined text-sm">delete_sweep</span>
+                            <span class="hidden sm:inline">Limpiar</span>
+                        </button>
+                        <button onclick="openConfigModal()" class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:border-on-surface-variant hover:text-on-surface transition-all text-xs font-label font-bold">
+                            <span class="material-symbols-outlined text-sm">settings</span>
+                            <span class="hidden sm:inline">Config.</span>
+                        </button>
+                        <button onclick="openHelpModal()" class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg border border-primary-fixed-dim/40 text-primary-fixed-dim hover:bg-primary-fixed-dim/10 transition-all text-xs font-label font-bold">
+                            <span class="material-symbols-outlined text-sm">help_outline</span>
+                            <span class="hidden sm:inline">Ayuda</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 items-start relative">
+                    <div class="relative flex-grow w-full sm:min-w-[180px]">
+                        <input type="text" id="addNombre" placeholder="Buscar por Nombre o RUT" class="p-2 rounded-lg w-full text-sm">
+                        <div id="searchResults" class="hidden absolute left-0 top-full mt-1 w-full min-w-[280px] bg-[#1a1b22] border border-[#4a5568] rounded-xl shadow-2xl z-[100] text-sm overflow-hidden max-h-64 overflow-y-auto"></div>
+                    </div>
+                    <input type="text" id="addApellido" placeholder="Apellido" class="flex-grow p-2 rounded-lg w-full sm:min-w-[180px] text-sm">
+                    <input type="text" id="addRut" placeholder="RUT (si no existe)" oninput="formatRut(this)" maxlength="12" class="flex-grow p-2 rounded-lg w-full sm:min-w-[180px] text-sm hidden">
+                    <select id="addTipoCupon" class="flex-grow p-2 rounded-lg w-full sm:min-w-[160px] text-sm">
+                        <option value="ninguno">Ninguno</option>
+                        <option value="sorteo">Cupón Sorteo (CS)</option>
+                        <option value="canje">Ticket Canje (TC)</option>
+                    </select>
+                    <button id="addButton" onclick="addClientToTournament()" class="bg-primary-fixed-dim text-on-primary px-5 py-2 rounded-lg font-headline font-bold text-sm hover:brightness-110 transition-all active:scale-95 w-full sm:w-auto">
+                        Añadir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="glass-card rounded-xl border border-outline-variant/20 overflow-hidden">
+                <div class="table-scroll-wrap p-2">
+                    <table id="clientTable" class="min-w-full"><thead></thead><tbody></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista Final -->
+        <div id="finalView" class="hidden">
+            <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+                <h1 class="font-headline font-black text-3xl text-red-400 uppercase tracking-tighter">⚡ Mesa Final</h1>
+                <div class="flex gap-2">
+                    <button onclick="showClassificationView()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:border-on-surface-variant text-sm font-label font-bold transition-all">
+                        <span class="material-symbols-outlined text-sm">arrow_back</span> Volver
+                    </button>
+                    <button onclick="declareWinners()" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-secondary-fixed-dim text-on-secondary font-headline font-bold text-sm hover:brightness-110 transition-all active:scale-95">
+                        Declarar Ganadores <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+            <div class="glass-card rounded-xl border border-outline-variant/20 overflow-hidden">
+                <div class="table-scroll-wrap p-3">
+                    <table id="finalistTable" class="min-w-full"><thead></thead><tbody></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista Ganadores -->
+        <div id="winnersView" class="hidden">
+            <h1 class="font-headline font-black text-3xl text-secondary-fixed-dim uppercase tracking-tighter text-center mb-6">🏆 Ganadores del Torneo 🏆</h1>
+            <div class="glass-card rounded-xl border border-outline-variant/20 p-5">
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="font-headline font-bold text-sm uppercase tracking-widest text-on-surface-variant">Podio</h2>
+                    <button onclick="showFinalView()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:border-on-surface-variant text-xs font-label font-bold transition-all">
+                        <span class="material-symbols-outlined text-sm">arrow_back</span> Volver a Mesa Final
+                    </button>
+                </div>
+                <div id="winnersList" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ayuda -->
+    <div id="helpModal" class="modal-container">
+        <div class="modal-content" style="width:680px;max-width:95%;">
+            <span class="close-btn" onclick="closeHelpModal()">&times;</span>
+            <div class="flex items-center gap-3 mb-4 border-b border-outline-variant/30 pb-3">
+                <span class="material-symbols-outlined text-primary-fixed-dim text-3xl" style="font-variation-settings:'FILL' 1">menu_book</span>
+                <div>
+                    <h2 class="font-headline font-bold text-xl text-on-surface">Guía de uso</h2>
+                    <p class="text-xs font-label text-on-surface-variant">Planilla de Torneos — CarlosPN Interactive®</p>
+                </div>
+            </div>
+            <div id="helpIndex" class="mb-4 flex flex-wrap gap-2"></div>
+            <div id="helpContent" class="bg-surface-container-low rounded-lg p-4 min-h-[200px] text-on-surface leading-relaxed text-sm border border-outline-variant/20"></div>
+            <div class="flex justify-between items-center mt-4 pt-3 border-t border-outline-variant/30">
+                <button onclick="helpPrev()" id="helpPrevBtn" class="px-5 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:border-on-surface-variant font-label font-bold text-sm transition-all disabled:opacity-30">← Anterior</button>
+                <span id="helpStepIndicator" class="text-xs font-label text-on-surface-variant"></span>
+                <button onclick="helpNext()" id="helpNextBtn" class="px-5 py-2 rounded-lg bg-primary-fixed-dim text-on-primary font-label font-bold text-sm hover:brightness-110 transition-all active:scale-95">Siguiente →</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+    // --- 1. CONEXIÓN CON GOOGLE SHEETS (LA PARTE CENTRAL) ---
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzgS7g3_yAEZA_56BtVqJ6-RRt1f_o8wMfdjzGVuLKzXvLH8Z-KiJP4E1SQLoE-edRdJw/exec';
+    let clientesSheetCache = null;
+
+    async function fetchFromSheet(action, data = {}) {
+        const getActions = ['getClients', 'listTournaments', 'syncPull'];
+        const method = getActions.includes(action) ? 'GET' : 'POST';
+        let url = SCRIPT_URL;
+        const options = { method, redirect: 'follow', cache: 'no-cache' };
+        if (method === 'GET') {
+            url += `?action=${action}&nocache=${new Date().getTime()}`;
+        } else {
+            const body = new FormData();
+            body.append('action', action);
+            body.append('data', JSON.stringify(data));
+            options.body = body;
+        }
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
+            const result = await response.json();
+            if (result.status === 'error') throw new Error(result.message);
+            return result.data;
+        } catch (error) {
+            // Solo mostrar toast para acciones del usuario, no para sync automático
+            const silentActions = ['syncPush','syncPull'];
+            if (!silentActions.includes(action)) {
+                console.error('Error en la operación con Sheets:', error);
+                showToast(`Error de conexión: ${error.message}`);
+            }
+            return null;
+        }
+    }
+
+    async function getClientesFromSheet() {
+        if (clientesSheetCache !== null) return clientesSheetCache;
+        showToast("Sincronizando base de datos...", true, 1000);
+        const data = await fetchFromSheet('getClients');
+        if (data) {
+            clientesSheetCache = data;
+            return data;
+        }
+        return [];
+    }
+
+    async function addClientToSheet(newClient) {
+        showToast("Guardando nuevo cliente en base de datos...", true, 1500);
+        const result = await fetchFromSheet('addClient', newClient);
+        if (result) {
+            showToast("Cliente guardado en la base de datos.", true);
+            clientesSheetCache = null;
+            return true;
+        }
+        showToast("Error al guardar cliente en la base de datos.");
+        return false;
+    }
+
+    // --- 2. LÓGICA DE LA APLICACIÓN (MODIFICADA PARA USAR SHEETS) ---
+    async function addClientToTournament() {
+        const addButton = document.getElementById("addButton");
+        addButton.disabled = true;
+        addButton.classList.add('btn-loading');
+        addButton.innerHTML = '<span class="btn-text">Añadir</span>';
+        try {
+            const tournamentId = document.getElementById("tournamentSelector").value;
+            const nombre = document.getElementById("addNombre").value.trim();
+            const apellido = document.getElementById("addApellido").value.trim();
+            const rutInput = document.getElementById("addRut").value.trim();
+            const tipoCupon = document.getElementById("addTipoCupon").value;
+            if (!nombre || !apellido) { showToast("Nombre y Apellido son obligatorios."); return; }
+            const rut = selectedClientRut || rutInput;
+            if (!rut) { showToast("El RUT es obligatorio."); return; }
+            const clientesTorneo = getClientesTorneo(tournamentId);
+            const entries = clientesTorneo.filter(c => c.rut === rut && !c.isTableBreak);
+            if (entries.length >= 2) { showToast(`${nombre} ${apellido} ya utilizó sus 2 entradas.`); return; }
+            if (tipoCupon === 'sorteo' && entries.some(c => c.cuponSorteo)) { showToast("Este participante ya utilizó el Cupón Sorteo (CS)."); return; }
+            if (tipoCupon === 'canje' && entries.some(c => c.ticketCanje)) { showToast("Este participante ya utilizó el Ticket Canje (TC)."); return; }
+            if (!selectedClientRut) {
+                const clientesBase = await getClientesFromSheet();
+                // Verificar duplicado por RUT o nombre+apellido antes de agregar a la base
+                const rutDup = clientesBase.some(c => c.rut === rut);
+                const nameDup = clientesBase.some(c =>
+                    c.nombre.trim().toLowerCase() === nombre.toLowerCase() &&
+                    c.apellido.trim().toLowerCase() === apellido.toLowerCase()
+                );
+                if (!rutDup && !nameDup) {
+                    const newClientData = { nombre, apellido, rut };
+                    const success = await addClientToSheet(newClientData);
+                    if (!success) { showToast("No se pudo agregar al participante. Falla al guardar en BD."); return; }
+                }
+                // Si existe por nombre pero distinto RUT, igual lo agregamos al torneo con el RUT ingresado
+            }
+            const newEntry = { id: Date.now() + "-" + Math.random().toString(36).substring(2, 9), nombre, apellido, rut, color: PREDEFINED_COLORS[0].hex, cuponSorteo: tipoCupon === 'sorteo', ticketCanje: tipoCupon === 'canje' };
+            getTournamentRounds(tournamentId).forEach(r => newEntry[r.toLowerCase().replace(/ /g, "")] = "");
+            clientesTorneo.push(newEntry);
+            saveClientesTorneo(tournamentId, clientesTorneo);
+            renderClients(tournamentId);
+            initializeSortable();
+            showToast(`Participante añadido: ${nombre} ${apellido}`, true);
+            if (typeof onClientAdded === 'function') onClientAdded(nombre, apellido);
+        } finally {
+            document.getElementById("addNombre").value = "";
+            document.getElementById("addApellido").value = "";
+            document.getElementById("addRut").value = "";
+            document.getElementById("addTipoCupon").value = "ninguno";
+            selectedClientRut = null;
+            document.getElementById("searchResults").classList.add("hidden");
+            document.getElementById("addRut").classList.add("hidden");
+            addButton.disabled = false;
+            addButton.classList.remove('btn-loading');
+            addButton.innerHTML = 'Añadir';
+        }
+    }
+
+    // --- 3. RESTO DEL CÓDIGO ---
+    const TOURNAMENTS = { 
+        ruleta: { name: 'Torneo de Ruleta', playersPerTable: 5, type: 'roulette', isVip: false }, 
+        draw_poker: { name: 'Torneo de Draw Poker', playersPerTable: 6, rounds: ['Puntaje'], type: 'cards', isVip: false }, 
+        blackjack: { name: 'Torneo de Blackjack', playersPerTable: 6, rounds: ['Puntaje'], type: 'cards', isVip: false }, 
+        ruleta_vip: { name: 'Torneo de Ruleta VIP', playersPerTable: 5, type: 'roulette', isVip: true }, 
+        draw_poker_vip: { name: 'Torneo de Draw Poker VIP', playersPerTable: 6, rounds: ['Puntaje'], type: 'cards', isVip: true }, 
+        blackjack_vip: { name: 'Torneo de Blackjack VIP', playersPerTable: 6, rounds: ['Puntaje'], type: 'cards', isVip: true } 
+    };
+    const PREDEFINED_COLORS = [
+        { hex: '#E53935', name: 'Rojo',      symbol: '●' },
+        { hex: '#1E88E5', name: 'Azul',      symbol: '■' },
+        { hex: '#FDD835', name: 'Amarillo',  symbol: '▲' },
+        { hex: '#FB8C00', name: 'Naranjo',   symbol: '◆' },
+        { hex: '#00897B', name: 'Teal',      symbol: '★' },
+        { hex: '#8E24AA', name: 'Morado',    symbol: '✦' },
+        { hex: '#43A047', name: 'Verde',     symbol: '⬟' },
+        { hex: '#D81B60', name: 'Rosado',    symbol: '⬠' },
+        { hex: '#6D4C41', name: 'Café',      symbol: '⬡' },
+        { hex: '#455A64', name: 'Gris',      symbol: '⬢' },
+        { hex: '#FFFFFF', name: 'Blanco',    symbol: '○' },
+        { hex: '#000000', name: 'Negro',     symbol: '□' }
+    ];
+    let selectedIndices = [], sortableInstance = null, chipColorPickerTarget = null, selectedClientRut = null;
+
+    // --- Funciones para el Modal de Contraseña ---
+    function promptForBaseAccess() {
+        showLoginView();
+        document.getElementById('passwordModal').style.display = 'flex';
+        document.getElementById('passwordInput').focus();
+    }
+
+    function closePasswordModal() {
+        document.getElementById('passwordInput').value = ''; 
+        document.getElementById('currentPasswordInput').value = '';
+        document.getElementById('newPasswordInput').value = '';
+        document.getElementById('confirmNewPasswordInput').value = '';
+        document.getElementById('masterCodeInput').value = '';
+        document.getElementById('passwordModal').style.display = 'none';
+    }
+
+    function showLoginView() {
+        document.getElementById('loginView').classList.remove('hidden');
+        document.getElementById('changePasswordView').classList.add('hidden');
+        document.getElementById('forgotPasswordView').classList.add('hidden');
+    }
+
+    function showChangePasswordView() {
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('changePasswordView').classList.remove('hidden');
+        document.getElementById('forgotPasswordView').classList.add('hidden');
+    }
+
+    function showForgotPasswordView() {
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('changePasswordView').classList.add('hidden');
+        document.getElementById('forgotPasswordView').classList.remove('hidden');
+    }
+
+    function checkPassword() {
+        const passwordInput = document.getElementById('passwordInput');
+        const enteredPassword = passwordInput.value;
+        const correctPassword = localStorage.getItem('database_access_code') || 'Supervisor'; 
+
+        if (enteredPassword === correctPassword) {
+            showToast('Acceso concedido. Redirigiendo...', true);
+            setTimeout(() => {
+                window.location.href = 'base/index.html';
+            }, 1000); 
+        } else {
+            showToast('Código incorrecto. Inténtalo de nuevo.');
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+
+    function changePassword() {
+        const currentPassword = document.getElementById('currentPasswordInput').value;
+        const newPassword = document.getElementById('newPasswordInput').value;
+        const confirmNewPassword = document.getElementById('confirmNewPasswordInput').value;
+        const correctCurrentPassword = localStorage.getItem('database_access_code') || 'Supervisor';
+
+        if (currentPassword !== correctCurrentPassword) {
+            showToast('El código actual es incorrecto.');
+            return;
+        }
+        if (!newPassword || newPassword.length < 4) {
+             showToast('El nuevo código debe tener al menos 4 caracteres.');
+             return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            showToast('Los nuevos códigos no coinciden.');
+            return;
+        }
+
+        localStorage.setItem('database_access_code', newPassword);
+        showToast('Código cambiado exitosamente.', true);
+        closePasswordModal();
+    }
+    
+    function resetPassword() {
+        const masterCodeInput = document.getElementById('masterCodeInput').value;
+        const correctMasterCode = '0000'; 
+
+        if (masterCodeInput === correctMasterCode) {
+            localStorage.removeItem('database_access_code');
+            showToast('Código restablecido al predeterminado (Supervisor).', true);
+            closePasswordModal();
+        } else {
+            showToast('Código maestro incorrecto.');
+        }
+    }
+
+    function togglePasswordVisibility(inputId, toggleIcon) {
+        const input = document.getElementById(inputId);
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        toggleIcon.innerHTML = isPassword 
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye-slash" viewBox="0 0 16 16"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.94 5.94 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.707z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.707zm10.296 6.884-12-12 .708-.708 12 12-.708.708z"/></svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>`;
+    }
+
+
+    function getTournamentRounds(e){const t=TOURNAMENTS[e];if(!t)return[];if("roulette"===t.type){const e=parseInt(localStorage.getItem("rouletteBallCount")||"3");return Array.from({length:e},(e,t)=>`Bolita ${t+1}`)}return t.rounds||[]}
+    function showToast(e,t=!1, duration=3000){const o=document.getElementById("toast");o.textContent=e,o.className=`toast show ${t?"success":""}`,setTimeout(()=>o.classList.remove("show"),duration)}
+    function getClientesTorneo(e){return JSON.parse(localStorage.getItem(`clientes_${e}`)||"[]")}
+    function saveClientesTorneo(e,t){localStorage.setItem(`clientes_${e}`,JSON.stringify(t))}
+    function getFinalists(e){return JSON.parse(localStorage.getItem(`finalistas_${e}`)||"[]")}
+    function saveFinalists(e,t){localStorage.setItem(`finalistas_${e}`,JSON.stringify(t))}
+    function getChips(){return JSON.parse(localStorage.getItem("tournament_chips")||"[]")}
+    function saveChips(e){localStorage.setItem("tournament_chips",JSON.stringify(e))}
+    function getGameLimits(){return JSON.parse(localStorage.getItem("gameLimits")||"{}")}
+    function calculateTotal(e,t){const o=e=>parseInt(String(e||"0").replace(/\./g,"")),n=getTournamentRounds(t);let l=0;return n.forEach(t=>{const n=t.toLowerCase().replace(/ /g,"");l+=o(e[n])}),l}
+    function getBestEntryPerPlayer(e,t){const o=new Map;const n=e.filter(e=>!e.isTableBreak);n.forEach(e=>{o.has(e.rut)&&calculateTotal(e,t)<=calculateTotal(o.get(e.rut),t)||o.set(e.rut,e)});return Array.from(o.values())}
+    function sendFullscreenCommand(){localStorage.setItem("fullscreen_command",(new Date).getTime()),showToast("Señal de pantalla completa enviada.",!0)}
+    function toggleThemeCommand(){const e=document.getElementById("themeSwitch").checked;localStorage.setItem("theme_command",JSON.stringify({theme:e?"dark":"light",timestamp:(new Date).getTime()})),showToast(`Comando modo ${e?"oscuro":"claro"} enviado.`,!0)}
+    function renderClients(e){const t=document.querySelector("#clientTable tbody"),o=document.querySelector("#clientTable thead"),n=TOURNAMENTS[e],l=getTournamentRounds(e),a=getClientesTorneo(e),r="roulette"===n.type;t.innerHTML="";const i=a.filter(e=>!e.isTableBreak),s=new Set(i.map(e=>e.rut));document.getElementById("totalCount").textContent=s.size;const d=new Set(i.filter(e=>e.cuponSorteo).map(e=>e.rut));document.getElementById("sorteoCount").textContent=d.size;const c=new Set(i.filter(e=>e.ticketCanje).map(e=>e.rut));document.getElementById("canjeCount").textContent=c.size;let u=`<tr><th class="p-3 w-12"><input type="checkbox" onchange="toggleSelectAll(this)"></th><th class="p-3">Cliente</th>`;r&&(u+='<th class="p-3">Color</th>'),u+='<th class="p-3">Tipo</th>',l.forEach(e=>{u+=`<th class="p-3">${e}</th>`}),u+='<th class="p-3">Total</th><th class="p-3 text-center">Acciones</th></tr>',o.innerHTML=u;let m=1,g=0;const p=n.playersPerTable,f=(r?5:4)+l.length+1;a.forEach((o,n)=>{if(o.isTableBreak){const e=t.insertRow();e.className="table-break-row";const l=e.insertCell();return l.colSpan=f,l.innerHTML=`\n                        <div class="flex justify-center items-center gap-4">\n                            <span>--- Mesa ${o.tableNumber} cerrada con ${o.playerCount} jugador(es) ---</span>\n                            <button onclick="reopenTable(${n})" class="bg-blue-600 text-white px-4 py-1 rounded-md text-xs font-bold hover:bg-blue-700 transition-colors">Reabrir Mesa</button>\n                        </div>\n                    `,m=o.tableNumber+1,void(g=0)}0===g&&(()=>{const e=t.insertRow();e.className="bg-sky-200 font-bold text-sky-800 table-header-row";const o=e.insertCell();o.colSpan=f,o.className="p-2 text-left pl-4",o.textContent=`Mesa ${m}`})();const a=t.insertRow(),i=selectedIndices.includes(n);a.className=`player-row ${i?"selected":"not-draggable"}`,a.dataset.index=n,a.dataset.rut=o.rut,a.dataset.id=o.id,a.insertCell().innerHTML=`<div class="p-2 text-center"><input type="checkbox" onchange="toggleSelection(this, ${n})" ${i?"checked":""}></div>`,a.insertCell().innerHTML=`<div class="p-2 rounded hover:bg-sky-100" onclick="showRutModal('${o.rut}')">${o.nombre} ${o.apellido}</div>`,r&&(a.insertCell().innerHTML=`<div class="p-2 flex justify-center items-center"><span class="color-swatch" style="background-color: ${o.color||"#FFFFFF"};" onclick="openColorModal(${n}, 'player')"></span></div>`);let s='<span class="bg-slate-400 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">Ninguno</span>';o.cuponSorteo?s='<span class="bg-green-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">CS</span>':o.ticketCanje&&(s='<span class="bg-indigo-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">TC</span>'),a.insertCell().innerHTML=`<div class="p-2 text-center">${s}</div>`,l.forEach(e=>{const t=e.toLowerCase().replace(/ /g,""),l=formatNumberForDisplay(o[t]);a.insertCell().innerHTML=`<div class="p-2"><input type="tel" value="${l}" oninput="formatNumericInput(this)" onchange="updateScore(${n}, '${t}', this.value)" class="score-input"></div>`}),a.insertCell().innerHTML=`<div class="p-2 text-center font-bold">${calculateTotal(o,e).toLocaleString("es-CL")}</div>`,a.insertCell().innerHTML=`<div class="p-2 text-center space-x-2"><button onclick="openEditModal(${n})" class="bg-yellow-400 text-white px-3 py-1 rounded-md text-xs hover:bg-yellow-500">Editar</button><button onclick="deleteClient(${n})" class="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600">Eliminar</button></div>`,g++,g===p&&(m++,g=0)}),g>0&&(()=>{const e=t.insertRow(),o=e.insertCell();o.colSpan=f,o.className="p-3 text-center",o.innerHTML=`<button onclick="closeTable()" class="bg-emerald-600 text-white px-6 py-2 rounded-md font-bold hover:bg-emerald-700 transition-colors">Cerrar Mesa ${m} con ${g} Jugador(es)</button>`})}
+    function clearAllParticipants(){if(!confirm("¿Estás seguro de que quieres eliminar a TODOS los participantes de esta planilla? Esta acción no se puede deshacer."))return;const e=document.getElementById("tournamentSelector").value;saveClientesTorneo(e,[]),selectedIndices=[],renderClients(e),initializeSortable(),showToast("La planilla ha sido limpiada.",!0);if(typeof schedulePush==="function")schedulePush({type:"delete",description:"Planilla limpiada",by:SYNC_ROLE,at:Date.now()});}
+    function closeTable(){if(!confirm("¿Estás seguro de que quieres cerrar esta mesa?"))return;const e=document.getElementById("tournamentSelector").value,t=getClientesTorneo(e);let o=0,n=1;t.forEach(e=>{e.isTableBreak?(n=e.tableNumber+1,o=0):o++}),o>0&&(t.push({isTableBreak:!0,playerCount:o,tableNumber:n}),saveClientesTorneo(e,t),renderClients(e),initializeSortable(),showToast(`Mesa ${n} cerrada.`,!0),typeof schedulePush==="function"&&schedulePush({type:"move",description:`Mesa ${n} cerrada`,by:SYNC_ROLE,at:Date.now()}))}
+    function reopenTable(e){if(!confirm("¿Estás seguro de que quieres reabrir esta mesa?"))return;const t=document.getElementById("tournamentSelector").value;let o=getClientesTorneo(t);const n=o[e].tableNumber;o.splice(e,1),saveClientesTorneo(t,o),renderClients(t),initializeSortable(),showToast(`Mesa ${n} ha sido reabierta.`,!0);if(typeof schedulePush==="function")schedulePush({type:"move",description:`Mesa ${n} reabierta`,by:SYNC_ROLE,at:Date.now()});}
+    function updateScore(e,t,o){const n=document.getElementById("tournamentSelector").value;let l=getClientesTorneo(n);if(!l[e]||l[e].isTableBreak)return;l[e][t]=o.replace(/\D/g,"");saveClientesTorneo(n,l);// Solo actualizar el total de esa fila sin rerenderizar todo
+        const row=document.querySelector(`#clientTable tbody tr[data-index="${e}"]`);if(row){const total=calculateTotal(l[e],n);const totalCell=row.cells[row.cells.length-2];if(totalCell)totalCell.querySelector('div').textContent=total.toLocaleString('es-CL');}
+        if (typeof onScoreChanged === 'function') onScoreChanged();}
+    function updateClientColor(e,t){const o=document.getElementById("tournamentSelector").value;let n=getClientesTorneo(o);n[e]&&!n[e].isTableBreak&&(n[e].color=t,saveClientesTorneo(o,n),renderClients(o),initializeSortable(),typeof schedulePush==="function"&&schedulePush({type:"move",description:"Color actualizado",by:SYNC_ROLE,at:Date.now()}))}
+    function deleteClient(e){if(!confirm("¿Estás seguro de que quieres eliminar esta entrada?"))return;const t=document.getElementById("tournamentSelector").value;let o=getClientesTorneo(t);const deletedName=o[e]?(o[e].nombre+' '+o[e].apellido):'Participante';o.splice(e,1),saveClientesTorneo(t,o),selectedIndices=[],renderClients(t),initializeSortable(),showToast("Entrada eliminada.",!0);if(typeof onClientDeleted==='function')onClientDeleted(deletedName);}
+    function openEditModal(e){const t=getClientesTorneo(document.getElementById("tournamentSelector").value)[e];t&&!t.isTableBreak&&(document.getElementById("editIndex").value=e,document.getElementById("editNombre").textContent=`${t.nombre} ${t.apellido}`,document.getElementById("editRut").textContent=t.rut,document.getElementById("editTipoCupon").value=t.cuponSorteo?"sorteo":t.ticketCanje?"canje":"ninguno",document.getElementById("editModal").style.display="flex")}
+    function closeEditModal(){document.getElementById("editModal").style.display="none"}
+    function saveClientChanges(){const e=document.getElementById("editIndex").value,t=document.getElementById("editTipoCupon").value,o=document.getElementById("tournamentSelector").value;let n=getClientesTorneo(o);n[e]&&!n[e].isTableBreak&&(n[e].cuponSorteo="sorteo"===t,n[e].ticketCanje="canje"===t,saveClientesTorneo(o,n),renderClients(o),initializeSortable(),closeEditModal(),showToast("Cambios guardados.",!0),typeof schedulePush==="function"&&schedulePush({type:"move",description:"Cupón actualizado",by:SYNC_ROLE,at:Date.now()}))}
+    function openColorModal(e,t){chipColorPickerTarget={index:e,type:t};const o=document.getElementById("colorModalPalette");o.innerHTML="";PREDEFINED_COLORS.forEach(c=>{const n=document.createElement("button");n.className="color-swatch-card";n.style.cssText=`background-color:${c.hex};border:3px solid ${c.hex==='#FFFFFF'?'#ccc':'transparent'};border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;width:72px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;gap:2px;`;n.innerHTML=`<span style="font-size:1.4rem;line-height:1;color:${c.hex==='#FFFFFF'||c.hex==='#FDD835'?'#1e293b':'white'};text-shadow:0 1px 3px rgba(0,0,0,0.4)">${c.symbol}</span><span style="font-size:0.65rem;font-weight:700;color:${c.hex==='#FFFFFF'||c.hex==='#FDD835'?'#1e293b':'white'};text-shadow:0 1px 3px rgba(0,0,0,0.5);letter-spacing:0.03em">${c.name}</span>`;n.onmouseover=()=>{n.style.transform='scale(1.12)';n.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';};n.onmouseout=()=>{n.style.transform='scale(1)';n.style.boxShadow='none';};n.onclick=()=>{if("player"===chipColorPickerTarget.type)updateClientColor(chipColorPickerTarget.index,c.hex);else if("chip"===chipColorPickerTarget.type){let o=getChips();o[chipColorPickerTarget.index].color=c.hex,saveChips(o),renderChipConfig(),showToast("Color de ficha actualizado.",!0)}closeColorModal()};o.appendChild(n)}),document.getElementById("colorModal").style.display="flex"}
+    function closeColorModal(){document.getElementById("colorModal").style.display="none",chipColorPickerTarget=null}
+    async function showRutModal(rut) { const clientes = await getClientesFromSheet(); const client = clientes.find(t => t.rut === rut); document.getElementById("rutModal").querySelector("#modalContent").innerHTML = `<span class="close-btn" onclick="closeRutModal()">&times;</span><h2 class="text-xl font-bold mb-4">Datos de Cliente</h2><p><span class="font-bold">Nombre:</span> ${client ? `${client.nombre} ${client.apellido}` : "N/A"}</p><p><span class="font-bold">RUT:</span> ${rut || "No definido"}</p>`; document.getElementById("rutModal").style.display="flex"; }
+    function closeRutModal(){document.getElementById("rutModal").style.display="none"}
+    function openConfigModal(){renderChipConfig(),document.getElementById("configModal").style.display="flex"}
+    function closeConfigModal(){document.getElementById("configModal").style.display="none"}
+    function renderChipConfig() {
+        const container = document.getElementById("chipConfigContainer");
+        container.innerHTML = "";
+        const chips = getChips();
+        chips.forEach((chip, index) => {
+            const div = document.createElement("div");
+            div.className = "flex items-center gap-2";
+            const fullImageName = chip.image || "";
+            let displayName = fullImageName;
+            if (displayName.toLowerCase().endsWith('.png')) {
+                displayName = displayName.slice(0, -4);
+            }
+            div.innerHTML = `
+                <span class="color-swatch" style="background-color: ${chip.color};" onclick="openColorModal(${index}, 'chip')"></span>
+                <input type="text" value="${formatNumberForDisplay(chip.value)}" oninput="this.value = formatNumberForDisplay(this.value.replace(/\\./g, ''))" onchange="updateChipValue(${index}, this.value)" placeholder="Valor Ficha" class="p-2 border rounded-md w-full">
+                <input type="text" value="${displayName}" onchange="updateChipImage(${index}, this.value)" placeholder="Nombre archivo (ej: roja)" class="p-2 border rounded-md w-full">
+                <button onclick="removeChip(${index})" class="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600">X</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+    function addChip(){let e=getChips();e.push({value:"1000",color:"#6D4C41",image:""}),saveChips(e),renderChipConfig(),showToast("Ficha añadida.",!0)}
+    function removeChip(e){let t=getChips();t.splice(e,1),saveChips(t),renderChipConfig(),showToast("Ficha eliminada.",!0)}
+    function updateChipValue(e,t){let o=getChips();o[e]&&(o[e].value=t.replace(/\./g,""),saveChips(o),showToast("Valor de ficha actualizado.",!0))}
+    function updateChipImage(index, value) {
+        let chips = getChips();
+        if (chips[index]) {
+            let imageName = value.trim();
+            if (imageName && !imageName.toLowerCase().endsWith('.png')) {
+                imageName += '.png';
+            }
+            chips[index].image = imageName;
+            saveChips(chips);
+            showToast("Imagen de ficha actualizada.", true);
+            renderChipConfig();
+        }
+    }
+    const classificationView=document.getElementById("classificationView"),finalView=document.getElementById("finalView"),winnersView=document.getElementById("winnersView");function showView(e){[classificationView,finalView,winnersView].forEach(e=>e.style.display="none"),e.style.display="block"}
+    function showClassificationView(){showView(classificationView),localStorage.setItem("tournament_view_state","classification")}
+    function showFinalView(){showView(finalView),localStorage.setItem("tournament_view_state","final"),renderFinalists()}
+    function showWinnersView(){showView(winnersView),localStorage.setItem("tournament_view_state","winners"),renderWinners()}
+    async function startFinal(){const e=document.getElementById("tournamentSelector").value,t=getClientesTorneo(e),o=TOURNAMENTS[e].playersPerTable,n=getBestEntryPerPlayer(t,e);if(n.length<o)return showToast(`Se necesitan al menos ${o} jugadores únicos para la final.`);const l=n.sort((t,o)=>calculateTotal(o,e)-calculateTotal(t,e)).slice(0,o),a=l.map(t=>({...t,...getTournamentRounds(e).reduce((e,o)=>({...e,[o.toLowerCase().replace(/ /g,"")]:""}),{})}));saveFinalists(e,a),showToast("Mesa final generada con puntajes en cero.",!0),showFinalView(),await exportToPDF({isFinalReport:!1})}
+    async function declareWinners(){showWinnersView(),await exportToPDF({isFinalReport:!0})}
+    function renderFinalists(){const e=document.getElementById("tournamentSelector").value,t=getTournamentRounds(e),o=getFinalists(e),n=document.querySelector("#finalistTable tbody"),l=document.querySelector("#finalistTable thead");if(!n||!l)return;n.innerHTML="",l.innerHTML=`<tr><th class="p-3">Finalista</th>${t.map(e=>`<th class="p-3">${e}</th>`).join("")}<th class="p-3">Total Final</th></tr>`,o.forEach((o,l)=>{const a=n.insertRow();a.className=l%2==0?"bg-sky-50":"bg-white",a.insertCell().innerHTML=`<div class="p-2 font-semibold">${o.nombre} ${o.apellido}</div>`,t.forEach(t=>{const n=t.toLowerCase().replace(/ /g,""),i=formatNumberForDisplay(o[n]);a.insertCell().innerHTML=`<div class="p-2"><input type="tel" value="${i}" oninput="formatNumericInput(this)" onchange="updateFinalistScore(${l},'${n}',this.value)" class="score-input"></div>`}),a.insertCell().innerHTML=`<div class="p-2 text-center font-bold">${calculateTotal(o,e).toLocaleString("es-CL")}</div>`})}
+    function renderWinners(){const e=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}"),t=document.getElementById("tournamentSelector").value,o=getFinalists(t),n=o.sort((e,o)=>calculateTotal(o,t)-calculateTotal(e,t)),l=document.getElementById("winnersList");l.innerHTML="";const a=[{prize:e.first||0,label:"1er Lugar",color:"bg-amber-400",emoji:"🥇"},{prize:e.second||0,label:"2do Lugar",color:"bg-slate-400",emoji:"🥈"},{prize:e.third||0,label:"3er Lugar",color:"bg-amber-600",emoji:"🥉"}];a.forEach((e,t)=>{n[t]&&(l.innerHTML+=`<div class="p-4 rounded-lg shadow-lg text-white ${e.color}"><div class="flex items-center justify-between"><div><p class="text-2xl font-bold">${e.emoji} ${e.label}</p><p class="text-xl">${n[t].nombre} ${n[t].apellido}</p></div><p class="text-3xl font-extrabold">$${parseInt(e.prize).toLocaleString("es-CL")}</p></div></div>`)})}
+    function updateFinalistScore(e,t,o){const n=document.getElementById("tournamentSelector").value;let l=getFinalists(n);l[e]&&(l[e][t]=o.replace(/\D/g,""),saveFinalists(n,l),renderFinalists())}
+    
+    // --- Lógica de Exportación a PDF con opción VIP ---
+    function openVipReportModal(pdfOptions) {
+        document.getElementById('vipReportCouponsBtn').onclick = () => {
+            _generatePdf({ ...pdfOptions, vipReportType: 'cupones' });
+            closeVipReportModal();
+        };
+        document.getElementById('vipReportInvitesBtn').onclick = () => {
+            _generatePdf({ ...pdfOptions, vipReportType: 'invitaciones' });
+            closeVipReportModal();
+        };
+        document.getElementById('vipReportModal').style.display = 'flex';
+    }
+
+    function closeVipReportModal() {
+        document.getElementById('vipReportModal').style.display = 'none';
+    }
+    
+    function exportToPDF(options = { isFinalReport: false }) {
+        const tournamentId = document.getElementById("tournamentSelector").value;
+        const tournament = TOURNAMENTS[tournamentId];
+
+        if (tournament.isVip && !options.isFinalReport) {
+            openVipReportModal(options);
+        } else {
+            _generatePdf({ ...options, vipReportType: 'cupones' });
+        }
+    }
+
+    async function _generatePdf(options = { isFinalReport: false, vipReportType: 'cupones' }) {
+        const { PDFDocument, rgb, StandardFonts } = PDFLib;
+        const pdfDoc = await PDFDocument.create();
+        const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        let page = pdfDoc.addPage();
+        const { width, height } = page.getSize();
+        let y = height - 40;
+    
+        const drawText = (text, opts) => {
+            page.drawText(text, { x: opts.x, y: y, size: opts.size, font: opts.isBold ? helveticaBoldFont : helveticaFont, color: rgb(0, 0, 0) });
+        };
+    
+        const tournamentId = document.getElementById("tournamentSelector").value;
+        const tournament = TOURNAMENTS[tournamentId];
+        const tournamentDate = localStorage.getItem("tournamentDate") || "N/A";
+        const tournamentDirector = localStorage.getItem("tournamentDirector") || "N/A";
+        const allEntries = getClientesTorneo(tournamentId);
+        const uniquePlayersCount = new Set(allEntries.filter(e => !e.isTableBreak).map(e => e.rut)).size;
+        const sorteoCount = new Set(allEntries.filter(e => e.cuponSorteo).map(e => e.rut)).size;
+        const canjeCount = new Set(allEntries.filter(e => e.ticketCanje).map(e => e.rut)).size;
+    
+        drawText(tournament.name, { x: 50, size: 24, isBold: true });
+        y -= 20;
+        drawText(`Fecha: ${tournamentDate} | Encargado: ${tournamentDirector}`, { x: 50, size: 12 });
+        y -= 20;
+
+        if (options.vipReportType === 'invitaciones') {
+            const totalInvitations = sorteoCount + canjeCount;
+            drawText(`Jugadores Únicos: ${uniquePlayersCount} | Invitaciones: ${totalInvitations}`, { x: 50, size: 12 });
+        } else {
+            drawText(`Jugadores Únicos: ${uniquePlayersCount} | Cupones Sorteo (CS): ${sorteoCount} | Tickets Canje (TC): ${canjeCount}`, { x: 50, size: 12 });
+        }
+        
+        y -= 15;
+        page.drawLine({ start: { x: 50, y: y }, end: { x: width - 50, y: y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+        y -= 30;
+    
+        if (options.isFinalReport) {
+            drawText("Acta de Entrega de Premios", { x: 50, size: 18, isBold: true });
+            y -= 30;
+            const finalists = getFinalists(tournamentId);
+            const sortedFinalists = [...finalists].sort((a, b) => calculateTotal(b, tournamentId) - calculateTotal(a, tournamentId));
+            const prizes = JSON.parse(localStorage.getItem("tournamentPrizes") || "{}");
+            const prizeDistribution = [ { prize: prizes.first || 0, label: "1er Lugar" }, { prize: prizes.second || 0, label: "2do Lugar" }, { prize: prizes.third || 0, label: "3er Lugar" } ];
+            prizeDistribution.forEach((prizeInfo, index) => {
+                if (sortedFinalists[index]) {
+                    const winner = sortedFinalists[index];
+                    const winnerEntries = allEntries.filter(entry => entry.rut === winner.rut && !entry.isTableBreak);
+                    const couponTypes = winnerEntries.map(entry => { if (entry.cuponSorteo) return "CS"; if (entry.ticketCanje) return "TC"; return "Ninguno"; }).join(', ');
+                    drawText(prizeInfo.label, { x: 50, size: 14, isBold: true }); y -= 25;
+                    drawText(`RUT: ${(winner.rut || "").replace(/[.-]/g, '')}`, { x: 60, size: 12 }); y -= 20;
+                    drawText(`Nombres: ${winner.nombre}`, { x: 60, size: 12 }); y -= 20;
+                    drawText(`Apellidos: ${winner.apellido}`, { x: 60, size: 12 }); y -= 20;
+                    drawText(`Cupones Usados: ${couponTypes}`, { x: 60, size: 12 }); y -= 20;
+                    drawText(`Monto a Recibir: $${parseInt(prizeInfo.prize).toLocaleString("es-CL")}`, { x: 60, size: 12 }); y -= 30;
+                    drawText("Firma:", { x: 60, size: 12 }); page.drawLine({ start: { x: 100, y: y - 2 }, end: { x: 350, y: y - 2 }, thickness: .5 }); y -= 50;
+                }
+            });
+        } else {
+            drawText("Informe de Participantes", { x: 50, size: 18, isBold: true });
+            y -= 30;
+            const players = new Map();
+            allEntries.filter(entry => !entry.isTableBreak).forEach(entry => { if (!players.has(entry.rut)) { players.set(entry.rut, { nombre: entry.nombre, apellido: entry.apellido, rut: entry.rut, entries: [] }); } players.get(entry.rut).entries.push(entry); });
+            const playerList = Array.from(players.values()).sort((a, b) => a.rut.localeCompare(b.rut));
+            const headerText = options.vipReportType === 'invitaciones' ? "Invitación (INV)" : "Cupones (CS/TC)";
+            drawText("RUT", { x: 50, size: 10, isBold: true }); drawText("Nombres", { x: 150, size: 10, isBold: true }); drawText("Apellidos", { x: 300, size: 10, isBold: true }); drawText(headerText, { x: 450, size: 10, isBold: true });
+            y -= 5;
+            page.drawLine({ start: { x: 50, y: y }, end: { x: width - 50, y: y }, thickness: .5 });
+            y -= 15;
+            
+            playerList.forEach(player => {
+                if (y < 40) { page = pdfDoc.addPage(); y = height - 40; }
+                let couponTypes;
+                if (options.vipReportType === 'invitaciones') {
+                    couponTypes = player.entries.some(e => e.cuponSorteo || e.ticketCanje) ? "INV" : "Ninguno";
+                } else {
+                    couponTypes = player.entries.map(entry => { if (entry.cuponSorteo) return "CS"; if (entry.ticketCanje) return "TC"; return "Ninguno"; }).join(', ');
+                }
+                drawText((player.rut || "").replace(/[.-]/g, ''), { x: 50, size: 10 }); drawText(player.nombre, { x: 150, size: 10 }); drawText(player.apellido, { x: 300, size: 10 }); drawText(couponTypes, { x: 450, size: 10 });
+                y -= 15;
+            });
+        }
+    
+        const pdfBytes = await pdfDoc.save();
+        const fileName = options.isFinalReport ? `Acta_Ganadores_${tournamentId}_${tournamentDate}.pdf` : `Informe_Participantes_${tournamentId}_${tournamentDate}.pdf`;
+        download(pdfBytes, fileName, "application/pdf");
+        showToast("PDF generado correctamente.", true);
+    }
+
+    async function saveBaseToFile() { const clientes = await getClientesFromSheet(); if (!clientes) return showToast("No se pudo obtener la base de datos para guardar."); const dataStr = JSON.stringify(clientes, null, 2); const blob = new Blob([dataStr], { type: "application/json" }); download(blob, 'base_clientes_sheets.json', 'application/json'); showToast("Base de datos de clientes (Sheets) guardada.", true); }
+    function saveTournamentToFile(){const e=document.getElementById("tournamentSelector").value,t={version:"2.1",tournamentType:e,date:localStorage.getItem("tournamentDate"),director:localStorage.getItem("tournamentDirector"),endTime:localStorage.getItem("registrationEndTime"),prizePool:localStorage.getItem("prizePool"),prizes:JSON.parse(localStorage.getItem("tournamentPrizes")||"{}"),limits:getGameLimits(),chips:getChips(),clients:getClientesTorneo(e),finalists:getFinalists(e),rouletteBallCount:localStorage.getItem("rouletteBallCount")||"3"};const o=JSON.stringify(t,null,2),n=new Blob([o],{type:"application/json"}),l=document.createElement("a");l.href=URL.createObjectURL(n),l.download=`torneo_${e}_${t.date}.json`,l.click(),URL.revokeObjectURL(l.href),showToast("Torneo guardado correctamente.",!0)}
+    function loadTournamentFromFile(e){const t=e.target.files[0];if(!t)return;const o=new FileReader;o.onload=t=>{let o;try{o=JSON.parse(t.target.result)}catch(e){return console.error("Error de sintaxis JSON:",e),void showToast("Error crítico: El archivo no es un JSON válido.")}let n=o.clients||o.participants;if(!o.tournamentType||!n||!Array.isArray(n))return void showToast("Error de validación: Archivo no es un torneo válido.");const l=e=>{return e.hasOwnProperty("cuponTorneo")&&(e.cuponSorteo=e.cuponTorneo,delete e.cuponTorneo),e.hasOwnProperty("cuponCanjeo")&&(e.ticketCanje=e.cuponCanjeo,delete e.cuponCanjeo),e};n=n.map(l);let a=(o.finalists||[]).map(l);try{const t=o.tournamentType;localStorage.setItem("selectedTournament",t),localStorage.setItem("tournamentDate",o.date||""),localStorage.setItem("tournamentDirector",o.director||""),localStorage.setItem("registrationEndTime",o.endTime||""),localStorage.setItem("prizePool",o.prizePool||"0"),localStorage.setItem("tournamentPrizes",JSON.stringify(o.prizes||{})),localStorage.setItem("gameLimits",JSON.stringify(o.limits||{})),localStorage.setItem("rouletteBallCount",o.rouletteBallCount||"3"),saveChips(o.chips||[]),saveClientesTorneo(t,n),saveFinalists(t,a),document.getElementById("tournamentSelector").value=t,document.getElementById("tournamentDate").value=o.date||(new Date).toISOString().split("T")[0],document.getElementById("tournamentDirector").value=o.director||"";const l=o.prizes||{};document.getElementById("prizePoolInput").value=formatNumberForDisplay(o.prizePool),document.getElementById("firstPrize").value=formatNumberForDisplay(l.first),document.getElementById("secondPrize").value=formatNumberForDisplay(l.second),document.getElementById("thirdPrize").value=formatNumberForDisplay(l.third);const r=o.limits||{};document.getElementById("minBetInput").value=formatNumberForDisplay(r.minBet),document.getElementById("maxBetInput").value=formatNumberForDisplay(r.maxBet),document.getElementById("minPlenoInput").value=formatNumberForDisplay(r.minPleno),document.getElementById("maxPlenoInput").value=formatNumberForDisplay(r.maxPleno),document.getElementById("rouletteBallCount").value=o.rouletteBallCount||"3",showToast("Torneo cargado correctamente.",!0),closeConfigModal(),changeTournament()}catch(t){console.error("Error al aplicar datos del torneo:",t),showToast("Error de aplicación. Prueba un Reinicio Forzado.")}finally{e.target.value=""}},o.readAsText(t)}
+    function hardReset(){confirm("ADVERTENCIA: ¿Estás seguro de que quieres hacer un reinicio forzado? Se borrarán TODOS los datos de TODOS los torneos del navegador (clientes, planillas, configuración). Esta acción es irreversible.")&&(localStorage.clear(),alert("Se han borrado todos los datos. La página se recargará para empezar de cero."),window.location.reload())}
+    function toggleSelection(e,t){const o=e.closest("tr");e.checked?(selectedIndices.includes(t)||selectedIndices.push(t),o.classList.add("selected"),o.classList.remove("not-draggable")):(selectedIndices=selectedIndices.filter(e=>e!==t),o.classList.remove("selected"),o.classList.add("not-draggable"))}
+    function toggleSelectAll(e){document.querySelectorAll("#clientTable tbody .player-row").forEach(t=>{const o=t.querySelector('input[type="checkbox"]'),n=parseInt(t.dataset.index);o.checked=e.checked,toggleSelection(o,n)})}
+    function initializeSortable(){const e=document.querySelector("#clientTable tbody");sortableInstance&&sortableInstance.destroy(),sortableInstance=new Sortable(e,{multiDrag:!0,selectedClass:"selected",filter:".not-draggable, .table-break-row, .table-header-row",preventOnFilter:false,animation:150,onEnd:()=>{const t=document.getElementById("tournamentSelector").value;let o=getClientesTorneo(t);let n=[];const l=new Map(o.filter(e=>!e.isTableBreak).map(e=>[e.id,e]));Array.from(e.children).forEach(e=>{e.dataset.id&&l.has(e.dataset.id)&&n.push(l.get(e.dataset.id))});let a=[];let r=0;o.forEach(e=>{e.isTableBreak?a.push(e):n[r]&&(a.push(n[r]),r++)}),saveClientesTorneo(t,a),selectedIndices=[],renderClients(t),initializeSortable();if(typeof schedulePush==='function')schedulePush({type:'move',description:'Participante movido',by:SYNC_ROLE,at:Date.now()});}})}
+    function formatNumberForDisplay(e){return e?new Intl.NumberFormat("es-CL").format(String(e).replace(/\D/g,"")):""}
+    function saveDateToLocalStorage(){const e=document.getElementById("tournamentDate").value;localStorage.setItem("tournamentDate",e);if(e){const[y,m,d]=e.split("-");const date=new Date(y,m-1,d);const formatted=date.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());document.getElementById("mainDateDisplay").textContent=`Fecha del Torneo: ${formatted}`}else{document.getElementById("mainDateDisplay").textContent="Fecha no definida"}showToast("Fecha guardada.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function saveDirectorName(){localStorage.setItem("tournamentDirector",document.getElementById("tournamentDirector").value);showToast("Nombre del encargado guardado.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function formatRut(e){let t=e.value.replace(/[^\dkK]/g,"").replace(/^0+/,"");e.value=t.length>1?`${new Intl.NumberFormat("es-CL").format(t.slice(0,-1))}-${t.slice(-1).toUpperCase()}`:t}
+    function formatNumericInput(e){e.value=formatNumberForDisplay(e.value)}
+    function savePrizePool(){localStorage.setItem("prizePool",document.getElementById("prizePoolInput").value.replace(/\./g,"")||"0");showToast("Pozo total guardado.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function savePrizes(){const e={first:document.getElementById("firstPrize").value.replace(/\./g,"")||"0",second:document.getElementById("secondPrize").value.replace(/\./g,"")||"0",third:document.getElementById("thirdPrize").value.replace(/\./g,"")||"0"};localStorage.setItem("tournamentPrizes",JSON.stringify(e));showToast("Premios guardados.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function saveEndTime(){localStorage.setItem("registrationEndTime",document.getElementById("registrationEndTime").value);showToast("Hora de cierre guardada.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function saveRouletteConfig(){localStorage.setItem("rouletteBallCount",document.getElementById("rouletteBallCount").value);renderClients(document.getElementById("tournamentSelector").value);initializeSortable();showToast("Configuración de ruleta guardada.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function saveGameLimits(){const e={minBet:document.getElementById("minBetInput").value.replace(/\./g,""),maxBet:document.getElementById("maxBetInput").value.replace(/\./g,""),minPleno:document.getElementById("minPlenoInput").value.replace(/\./g,""),maxPleno:document.getElementById("maxPlenoInput").value.replace(/\./g,"")};localStorage.setItem("gameLimits",JSON.stringify(e));showToast("Límites del juego guardados.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function changeTournament(){const e=document.getElementById("tournamentSelector").value,t=TOURNAMENTS[e];localStorage.setItem("selectedTournament",e),document.getElementById("mainTournamentTitle").textContent=t.name;const headerEl=document.getElementById('headerTournamentName');if(headerEl)headerEl.textContent=t.name;const o=document.getElementById("pokerBlackjackConfig"),n=document.getElementById("rouletteLimitsConfig");o.classList.toggle("hidden","cards"!==t.type),n.classList.toggle("hidden","roulette"!==t.type),document.getElementById("rouletteConfig").classList.toggle("hidden","roulette"!==t.type),document.getElementById("chipConfigSection").classList.toggle("hidden","cards"!==t.type);const l=document.getElementById("tournamentDate").value;if(l){const[y,m,d]=l.split("-");const date=new Date(y,m-1,d);const formatted=date.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());document.getElementById("mainDateDisplay").textContent=`Fecha del Torneo: ${formatted}`}else{document.getElementById("mainDateDisplay").textContent="Fecha no definida"}selectedIndices=[],showClassificationView(),renderClients(e),initializeSortable()}
+    document.addEventListener("DOMContentLoaded",()=>{
+        const e=document.getElementById("tournamentSelector");Object.keys(TOURNAMENTS).forEach(t=>e.add(new Option(TOURNAMENTS[t].name,t))),e.value=localStorage.getItem("selectedTournament")||"ruleta",document.getElementById("tournamentDate").value=localStorage.getItem("tournamentDate")||(new Date).toISOString().split("T")[0],document.getElementById("tournamentDirector").value=localStorage.getItem("tournamentDirector")||"";const t=document.getElementById("prizePoolInput");t.value=formatNumberForDisplay(localStorage.getItem("prizePool"));const o=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}");document.getElementById("firstPrize").value=formatNumberForDisplay(o.first),document.getElementById("secondPrize").value=formatNumberForDisplay(o.second),document.getElementById("thirdPrize").value=formatNumberForDisplay(o.third);const n=getGameLimits();document.getElementById("minBetInput").value=formatNumberForDisplay(n.minBet),document.getElementById("maxBetInput").value=formatNumberForDisplay(n.maxBet),document.getElementById("minPlenoInput").value=formatNumberForDisplay(n.minPleno),document.getElementById("maxPlenoInput").value=formatNumberForDisplay(n.maxPleno),document.getElementById("registrationEndTime").value=localStorage.getItem("registrationEndTime")||"",document.getElementById("rouletteBallCount").value=localStorage.getItem("rouletteBallCount")||"3",localStorage.setItem("tournament_view_state","classification"),changeTournament();
+        
+        // Listen for Enter key on password fields
+        document.getElementById('passwordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); checkPassword(); }});
+        document.getElementById('confirmNewPasswordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); changePassword(); }});
+        document.getElementById('masterCodeInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); resetPassword(); }});
+
+        document.getElementById("addNombre").addEventListener("input", async (e) => {
+            const raw = e.target.value;
+            const resultsContainer = document.getElementById("searchResults");
+            resultsContainer.innerHTML = "";
+            document.getElementById("addRut").classList.add("hidden");
+            selectedClientRut = null;
+
+            const makeItem = (html, onClick) => {
+                const div = document.createElement("div");
+                div.style.cssText = "padding:10px 14px;cursor:pointer;color:#e3e1ea;font-family:Inter,sans-serif;font-size:0.85rem;border-bottom:1px solid rgba(74,85,104,0.3);transition:background 0.15s;";
+                div.innerHTML = html;
+                div.onmouseenter = () => div.style.background = 'rgba(0,218,243,0.1)';
+                div.onmouseleave = () => div.style.background = '';
+                div.onclick = onClick;
+                return div;
+            };
+
+            // Detectar RUT
+            const isRut = /^[\d\.\-kK]+$/.test(raw) && raw.replace(/[^\dkK]/g, '').length >= 1;
+
+            if (isRut) {
+                let clean = raw.replace(/[^\dkK]/g, '').replace(/^0+/, '');
+                let formatted = clean;
+                if (clean.length > 1) {
+                    const body = clean.slice(0, -1);
+                    const dv = clean.slice(-1).toUpperCase();
+                    formatted = `${new Intl.NumberFormat('es-CL').format(body)}-${dv}`;
+                }
+                if (e.target.value !== formatted) e.target.value = formatted;
+
+                if (clean.length >= 3) {
+                    const clientesBase = await getClientesFromSheet();
+                    const filtered = clientesBase.filter(c => c.rut && c.rut.replace(/[^\dkK]/gi,'').startsWith(clean.replace(/[^\dkK]/gi,'')));
+                    if (filtered.length > 0) {
+                        filtered.slice(0,10).forEach(client => {
+                            resultsContainer.appendChild(makeItem(
+                                `<span style="font-weight:700;color:#e3e1ea">${client.nombre} ${client.apellido}</span> <span style="color:#6b7280;font-size:0.75rem;margin-left:8px">${client.rut}</span>`,
+                                () => {
+                                    document.getElementById("addNombre").value = client.nombre;
+                                    document.getElementById("addApellido").value = client.apellido;
+                                    selectedClientRut = client.rut;
+                                    resultsContainer.classList.add("hidden");
+                                }
+                            ));
+                        });
+                        resultsContainer.classList.remove("hidden");
+                    } else {
+                        const rutField = document.getElementById("addRut");
+                        rutField.value = formatted;
+                        rutField.classList.remove("hidden");
+                        resultsContainer.classList.add("hidden");
+                    }
+                } else {
+                    resultsContainer.classList.add("hidden");
+                }
+                return;
+            }
+
+            // Búsqueda por nombre
+            const searchTerm = raw.toLowerCase();
+            if (searchTerm.length > 0) {
+                const clientesBase = await getClientesFromSheet();
+                const filtered = clientesBase.filter(c => (c.nombre+" "+c.apellido).toLowerCase().includes(searchTerm));
+                if (filtered.length > 0) {
+                    filtered.slice(0,10).forEach(client => {
+                        resultsContainer.appendChild(makeItem(
+                            `<span style="font-weight:700">${client.nombre} ${client.apellido}</span> <span style="color:#6b7280;font-size:0.75rem;margin-left:8px">${client.rut||''}</span>`,
+                            () => {
+                                document.getElementById("addNombre").value = client.nombre;
+                                document.getElementById("addApellido").value = client.apellido;
+                                selectedClientRut = client.rut;
+                                resultsContainer.classList.add("hidden");
+                            }
+                        ));
+                    });
+                    resultsContainer.classList.remove("hidden");
+                } else {
+                    document.getElementById("addRut").classList.remove("hidden");
+                    resultsContainer.classList.add("hidden");
+                }
+            } else {
+                resultsContainer.classList.add("hidden");
+            }
+        });
+        window.addEventListener("click",e=>{
+            "addNombre"!==e.target.id&&document.getElementById("searchResults")&&document.getElementById("searchResults").classList.add("hidden");
+            // Solo cerrar modales que NO sean el roleModal (ese es obligatorio)
+            if(e.target.classList.contains("modal-container")&&e.target.id!=='roleModal')
+                e.target.style.display="none";
+            // Cerrar panel notificaciones si click fuera
+            var notifDrop=document.getElementById('syncNotifDropdown');
+            if(notifDrop&&!notifDrop.contains(e.target)&&!e.target.closest('[onclick*="toggleNotifPanel"]'))
+                notifDrop.classList.add('hidden');
+        });
+        getClientesFromSheet();
+    });
+
+    // === SISTEMA DE AYUDA ===
+    const HELP_STEPS = [
+        {
+            title: '1. Visión general de la planilla',
+            icon: '🏠',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">¿Qué es esta pantalla?</h3>
+                <p class="mb-3">Esta es la <strong>Planilla de Torneos</strong>. Desde aquí se gestiona todo el torneo: inscripción de participantes, configuración de premios, generación de la mesa final y declaración de ganadores.</p>
+                <h3 class="font-bold text-blue-800 text-base mb-2">Elementos principales:</h3>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li><strong>Base de Datos</strong> (botón arriba izquierda): accede al listado general de clientes del casino.</li>
+                    <li><strong>Ver Torneo</strong> (botón arriba derecha): abre la pantalla pública del torneo que ven los clientes.</li>
+                    <li><strong>Título y fecha</strong>: muestran el torneo activo y la fecha configurada.</li>
+                    <li><strong>Estadísticas</strong>: jugadores únicos, cupones sorteo (CS) y tickets canje (TC) registrados.</li>
+                    <li><strong>Tabla de participantes</strong>: lista todos los inscritos en el torneo actual.</li>
+                </ul>
+            `
+        },
+        {
+            title: '2. Configurar el torneo',
+            icon: '⚙️',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Antes de comenzar, configura el torneo</h3>
+                <p class="mb-3">Presiona el botón <strong>Configuración ⚙️</strong> para abrir el panel. Dentro encontrarás:</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>Seleccionar Torneo:</strong> elige entre Ruleta, Blackjack, Draw Poker y sus versiones VIP.</li>
+                    <li><strong>Fecha:</strong> ingresa la fecha del torneo y presiona <em>✔ Aplicar</em>. Esta fecha no cambiará automáticamente al pasar la medianoche.</li>
+                    <li><strong>Hora de Cierre de Inscripción:</strong> define a qué hora se cierran las inscripciones. La pantalla del torneo mostrará un contador de advertencia 20 minutos antes.</li>
+                    <li><strong>Nombre del Encargado:</strong> aparece en los informes PDF.</li>
+                    <li><strong>Premios:</strong> define el pozo total, 1er, 2do y 3er lugar.</li>
+                    <li><strong>Límites del juego:</strong> apuesta mínima y máxima (se muestra en la pantalla del torneo).</li>
+                    <li><strong>Fichas:</strong> solo para torneos de cartas. Agrega las fichas con su color y valor.</li>
+                </ul>
+            `
+        },
+        {
+            title: '3. Añadir participantes',
+            icon: '➕',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Cómo inscribir a un jugador</h3>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Escribe el <strong>Nombre</strong> del participante en el campo de búsqueda. Aparecerá una lista con los clientes que coincidan en la base de datos.</li>
+                    <li>Si el cliente <strong>aparece en la lista</strong>: haz clic sobre su nombre. El sistema llenará los datos automáticamente y no pedirá RUT (ya lo tiene guardado).</li>
+                    <li>Si el cliente <strong>no aparece</strong>: escribe también el Apellido. Aparecerá el campo RUT para ingresarlo manualmente. El sistema lo registrará automáticamente en la base de datos.</li>
+                    <li>Selecciona el <strong>Tipo de entrada</strong>: Ninguno, Cupón Sorteo (CS) o Ticket Canje (TC).</li>
+                    <li>Presiona <strong>Añadir</strong>.</li>
+                </ol>
+                <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3 text-yellow-800 text-xs">
+                    ⚠️ Cada jugador puede inscribirse máximo <strong>2 veces</strong> por torneo, y solo puede usar 1 CS y 1 TC.
+                </div>
+            `
+        },
+        {
+            title: '4. Gestionar la tabla de participantes',
+            icon: '📋',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Acciones sobre los participantes inscritos</h3>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>Cambiar color de mesa:</strong> haz clic en el círculo de color de un participante para asignarle una mesa visualmente.</li>
+                    <li><strong>Editar tipo de entrada:</strong> presiona el ícono ✏️ para cambiar si tiene CS, TC o ninguno.</li>
+                    <li><strong>Eliminar participante:</strong> presiona el ícono 🗑️ de la fila correspondiente.</li>
+                    <li><strong>Reordenar:</strong> selecciona participantes con el checkbox y arrástralos para cambiar su posición en la lista.</li>
+                    <li><strong>Agregar separador de mesa:</strong> el botón <em>+ Mesa</em> inserta una línea divisoria entre grupos de jugadores.</li>
+                    <li><strong>Ver datos del cliente:</strong> haz clic en el nombre o RUT para ver su información completa.</li>
+                </ul>
+                <div class="mt-3 bg-blue-50 border border-blue-200 rounded p-3 text-blue-800 text-xs">
+                    💡 Los colores de mesa se ven reflejados en tiempo real en la pantalla del torneo.
+                </div>
+            `
+        },
+        {
+            title: '5. Ingresar puntajes (Ruleta)',
+            icon: '🎡',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Para torneos de Ruleta</h3>
+                <p class="mb-3">Cada participante tiene columnas de puntaje por bolita (Bolita 1, Bolita 2, etc., según la cantidad configurada).</p>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Haz clic directamente en la celda de puntaje del jugador.</li>
+                    <li>Escribe el valor obtenido en esa bolita.</li>
+                    <li>El <strong>Total</strong> se calcula automáticamente sumando todas las bolitas.</li>
+                    <li>El sistema guarda el puntaje al instante — no necesitas presionar ningún botón extra.</li>
+                </ol>
+                <div class="mt-3 bg-green-50 border border-green-200 rounded p-3 text-green-800 text-xs">
+                    ✅ La pantalla del torneo se actualiza automáticamente con los puntajes ingresados.
+                </div>
+            `
+        },
+        {
+            title: '6. Ingresar puntajes (Poker / Blackjack)',
+            icon: '🃏',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Para torneos de cartas</h3>
+                <p class="mb-3">El funcionamiento es el mismo que en ruleta, pero con una sola columna de <strong>Puntaje</strong> por participante.</p>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Haz clic en la celda de puntaje del jugador.</li>
+                    <li>Ingresa el puntaje obtenido en la ronda.</li>
+                    <li>El total se actualiza automáticamente.</li>
+                </ol>
+                <p class="mt-3">En la pantalla del torneo, los primeros lugares (según el número configurado de finalistas) aparecen resaltados en <span class="text-green-700 font-bold">verde</span> indicando que clasifican a la mesa final.</p>
+            `
+        },
+        {
+            title: '7. Iniciar la Mesa Final',
+            icon: '🏁',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Cuando se termina la clasificación</h3>
+                <p class="mb-3">Una vez que todos los participantes tienen su puntaje, se puede generar la Mesa Final.</p>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Ve a <strong>Configuración ⚙️</strong> → sección <em>Acciones del Torneo</em>.</li>
+                    <li>Presiona <strong>Iniciar Final</strong>. El sistema selecciona automáticamente a los mejores jugadores según el número de finalistas configurado.</li>
+                    <li>Se genera un <strong>PDF de clasificación</strong> automáticamente.</li>
+                    <li>La vista cambia a la <strong>Mesa Final</strong>, donde puedes ingresar los puntajes de la ronda final.</li>
+                </ol>
+                <div class="mt-3 bg-orange-50 border border-orange-200 rounded p-3 text-orange-800 text-xs">
+                    ⚠️ Una vez iniciada la final, los puntajes de clasificación quedan bloqueados.
+                </div>
+            `
+        },
+        {
+            title: '8. Declarar Ganadores',
+            icon: '🏆',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Al finalizar la Mesa Final</h3>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Ingresa los puntajes finales de cada finalista en la tabla de Mesa Final.</li>
+                    <li>Presiona <strong>Declarar Ganadores →</strong>.</li>
+                    <li>El sistema calcula automáticamente los 3 primeros lugares y muestra el <strong>podio de ganadores</strong> con sus premios.</li>
+                    <li>Se genera el <strong>PDF del Acta de Ganadores</strong> automáticamente.</li>
+                    <li>La pantalla del torneo muestra el podio en modo público.</li>
+                </ol>
+                <div class="mt-3 bg-amber-50 border border-amber-200 rounded p-3 text-amber-800 text-xs">
+                    🥇 Los premios mostrados son los configurados previamente en <em>Configuración → Premios</em>.
+                </div>
+            `
+        },
+        {
+            title: '9. Guardar y cargar torneo',
+            icon: '💾',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">Respaldo y restauración</h3>
+                <p class="mb-3">Desde <strong>Configuración ⚙️</strong> → sección <em>Archivos</em>:</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>Guardar Torneo:</strong> descarga un archivo <code>.json</code> con toda la información del torneo actual (participantes, puntajes, configuración). Ideal para respaldo.</li>
+                    <li><strong>Cargar Torneo:</strong> restaura un torneo previamente guardado desde un archivo <code>.json</code>. Reemplaza todos los datos actuales.</li>
+                    <li><strong>Guardar Base (Sheets):</strong> descarga la base de datos de clientes desde Google Sheets en formato <code>.json</code>.</li>
+                    <li><strong>Exportar PDF:</strong> genera el informe de participantes del torneo actual en cualquier momento.</li>
+                </ul>
+                <div class="mt-3 bg-blue-50 border border-blue-200 rounded p-3 text-blue-800 text-xs">
+                    💡 Se recomienda guardar el torneo al finalizar cada etapa (clasificación y final).
+                </div>
+            `
+        },
+        {
+            title: '10. Pantalla del torneo',
+            icon: '📺',
+            content: `
+                <h3 class="font-bold text-blue-800 text-base mb-2">La pantalla que ven los clientes</h3>
+                <p class="mb-3">Presiona <strong>Ver Torneo</strong> (arriba a la derecha) para abrir la pantalla pública. Esta pantalla muestra:</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li>Nombre del torneo, fecha y reloj en tiempo real.</li>
+                    <li>Tarjetas con premios, inscripciones y fichas.</li>
+                    <li>Tabla de clasificación actualizada en tiempo real.</li>
+                </ul>
+                <h3 class="font-bold text-blue-800 text-base mt-3 mb-2">Controles desde Configuración:</h3>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li><strong>Pantalla Completa:</strong> envía el comando de pantalla completa a la pantalla del torneo.</li>
+                    <li><strong>Modo Oscuro / Claro:</strong> cambia el tema visual de la pantalla del torneo.</li>
+                </ul>
+                <div class="mt-3 bg-green-50 border border-green-200 rounded p-3 text-green-800 text-xs">
+                    ✅ La pantalla del torneo se actualiza automáticamente cuando se hacen cambios en la planilla.
+                </div>
+            `
+        }
+    ];
+
+    let helpCurrentStep = 0;
+
+    function openHelpModal() {
+        helpCurrentStep = 0;
+        renderHelpIndex();
+        renderHelpStep();
+        document.getElementById('helpModal').style.display = 'flex';
+    }
+
+    function closeHelpModal() {
+        document.getElementById('helpModal').style.display = 'none';
+    }
+
+    function renderHelpIndex() {
+        const container = document.getElementById('helpIndex');
+        container.innerHTML = HELP_STEPS.map((step, i) =>
+            `<button onclick="goToHelpStep(${i})" class="text-xs px-2 py-1 rounded-full border font-medium transition-colors ${i === helpCurrentStep ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}">${step.icon} ${i + 1}</button>`
+        ).join('');
+    }
+
+    function renderHelpStep() {
+        const step = HELP_STEPS[helpCurrentStep];
+        document.getElementById('helpContent').innerHTML = `
+            <h3 class="font-extrabold text-blue-900 text-lg mb-3">${step.icon} ${step.title}</h3>
+            ${step.content}
+        `;
+        document.getElementById('helpStepIndicator').textContent = `Paso ${helpCurrentStep + 1} de ${HELP_STEPS.length}`;
+        document.getElementById('helpPrevBtn').disabled = helpCurrentStep === 0;
+        document.getElementById('helpNextBtn').textContent = helpCurrentStep === HELP_STEPS.length - 1 ? '✓ Cerrar' : 'Siguiente →';
+        renderHelpIndex();
+    }
+
+    function goToHelpStep(index) {
+        helpCurrentStep = index;
+        renderHelpStep();
+    }
+
+    function helpPrev() {
+        if (helpCurrentStep > 0) { helpCurrentStep--; renderHelpStep(); }
+    }
+
+    function helpNext() {
+        if (helpCurrentStep < HELP_STEPS.length - 1) { helpCurrentStep++; renderHelpStep(); }
+        else closeHelpModal();
+    }
+
+    // === GUARDAR / RECUPERAR TORNEO EN SHEETS ===
+
+    async function saveTournamentToSheets() {
+        const btn = document.querySelector('[onclick*="saveTournamentToSheets"]');
+        if (btn) { btn._orig = btn.innerHTML; btn.disabled = true; btn.classList.add('btn-loading'); btn.innerHTML = `<span class="btn-text">${btn._orig}</span>`; }
+        try {
+            const tournamentId = document.getElementById('tournamentSelector').value;
+            const tournamentData = {
+                version: '2.1',
+                tournamentType: tournamentId,
+                date: localStorage.getItem('tournamentDate') || '',
+                director: localStorage.getItem('tournamentDirector') || '',
+                endTime: localStorage.getItem('registrationEndTime') || '',
+                prizePool: localStorage.getItem('prizePool') || '0',
+                prizes: JSON.parse(localStorage.getItem('tournamentPrizes') || '{}'),
+                limits: getGameLimits(),
+                chips: getChips(),
+                rouletteBallCount: localStorage.getItem('rouletteBallCount') || '3',
+                clients: getClientesTorneo(tournamentId),
+                finalists: getFinalists(tournamentId)
+            };
+            const result = await fetchFromSheet('saveTournament', tournamentData);
+            if (result) showToast(`✅ Torneo guardado en Sheets: ${result.sheetName}`, true);
+        } catch(err) {
+            showToast('Error al guardar en Sheets: ' + err.message);
+        } finally {
+            if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); btn.innerHTML = btn._orig; }
+        }
+    }
+
+    async function openRecoverModal() {
+        document.getElementById('recoverModal').style.display = 'flex';
+        const listEl = document.getElementById('recoverList');
+        listEl.innerHTML = '<p class="text-center text-on-surface-variant text-sm py-6 font-label">Cargando...</p>';
+        try {
+            const list = await fetchFromSheet('listTournaments', {});
+            if (!list || list.length === 0) {
+                listEl.innerHTML = '<p class="text-center text-on-surface-variant text-sm py-6 font-label">No hay torneos guardados en Sheets.</p>';
+                return;
+            }
+            // Ordenar por fecha de guardado descendente
+            list.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+            const TOURNAMENT_NAMES = {
+                ruleta: 'Ruleta', draw_poker: 'Draw Poker', blackjack: 'Blackjack',
+                ruleta_vip: 'Ruleta VIP', draw_poker_vip: 'Draw Poker VIP', blackjack_vip: 'Blackjack VIP'
+            };
+            listEl.innerHTML = list.map(t => `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-[#1a1b22] border border-[#4a5568]/40 hover:border-[#e9c400]/40 transition-all">
+                    <div>
+                        <p class="font-headline font-bold text-sm text-on-surface">${TOURNAMENT_NAMES[t.tournamentType] || t.tournamentType}</p>
+                        <p class="text-xs font-label text-on-surface-variant mt-0.5">
+                            📅 ${t.date} &nbsp;·&nbsp; 👤 ${t.director || 'Sin encargado'} &nbsp;·&nbsp; 🎮 ${t.players} jugadores
+                        </p>
+                        <p class="text-[10px] font-label text-[#4a5568] mt-0.5">Guardado: ${t.savedAt}</p>
+                    </div>
+                    <button onclick="recoverTournament('${t.sheetName}')" 
+                        class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#e9c400] text-[#3a3000] font-label font-bold text-xs hover:brightness-110 transition-all active:scale-95 ml-3 whitespace-nowrap">
+                        <span class="material-symbols-outlined text-sm">restore</span> Cargar
+                    </button>
+                </div>
+            `).join('');
+        } catch(err) {
+            listEl.innerHTML = `<p class="text-center text-red-400 text-sm py-6 font-label">Error: ${err.message}</p>`;
+        }
+    }
+
+    function closeRecoverModal() {
+        document.getElementById('recoverModal').style.display = 'none';
+    }
+
+    async function recoverTournament(sheetName) {
+        if (!confirm(`¿Cargar el torneo "${sheetName}"? Se reemplazarán los datos actuales de este torneo.`)) return;
+        closeRecoverModal();
+        showToast('Recuperando torneo desde Sheets...', true);
+        try {
+            const url = `${SCRIPT_URL}?action=getTournament&sheetName=${encodeURIComponent(sheetName)}&nocache=${Date.now()}`;
+            const response = await fetch(url, { redirect: 'follow' });
+            const result = await response.json();
+            if (result.status === 'error') throw new Error(result.message);
+            const o = result.data;
+            // Aplicar datos igual que loadTournamentFromFile
+            let n = (o.clients || []);
+            const mapEntry = e => {
+                if (e.hasOwnProperty('cuponTorneo')) { e.cuponSorteo = e.cuponTorneo; delete e.cuponTorneo; }
+                if (e.hasOwnProperty('cuponCanjeo')) { e.ticketCanje = e.cuponCanjeo; delete e.cuponCanjeo; }
+                return e;
+            };
+            n = n.map(mapEntry);
+            let finalists = (o.finalists || []).map(mapEntry);
+            const t = o.tournamentType;
+            localStorage.setItem('selectedTournament', t);
+            localStorage.setItem('tournamentDate', o.date || '');
+            localStorage.setItem('tournamentDirector', o.director || '');
+            localStorage.setItem('registrationEndTime', o.endTime || '');
+            localStorage.setItem('prizePool', o.prizePool || '0');
+            localStorage.setItem('tournamentPrizes', JSON.stringify(o.prizes || {}));
+            localStorage.setItem('gameLimits', JSON.stringify(o.limits || {}));
+            localStorage.setItem('rouletteBallCount', o.rouletteBallCount || '3');
+            saveChips(o.chips || []);
+            saveClientesTorneo(t, n);
+            saveFinalists(t, finalists);
+            document.getElementById('tournamentSelector').value = t;
+            document.getElementById('tournamentDate').value = o.date || new Date().toISOString().split('T')[0];
+            document.getElementById('tournamentDirector').value = o.director || '';
+            const prizes = o.prizes || {};
+            document.getElementById('prizePoolInput').value = formatNumberForDisplay(o.prizePool);
+            document.getElementById('firstPrize').value = formatNumberForDisplay(prizes.first);
+            document.getElementById('secondPrize').value = formatNumberForDisplay(prizes.second);
+            document.getElementById('thirdPrize').value = formatNumberForDisplay(prizes.third);
+            const limits = o.limits || {};
+            document.getElementById('minBetInput').value = formatNumberForDisplay(limits.minBet);
+            document.getElementById('maxBetInput').value = formatNumberForDisplay(limits.maxBet);
+            document.getElementById('minPlenoInput').value = formatNumberForDisplay(limits.minPleno);
+            document.getElementById('maxPlenoInput').value = formatNumberForDisplay(limits.maxPleno);
+            document.getElementById('rouletteBallCount').value = o.rouletteBallCount || '3';
+            showToast('✅ Torneo recuperado correctamente.', true);
+            closeConfigModal();
+            changeTournament();
+        } catch(err) {
+            showToast('Error al recuperar torneo: ' + err.message);
+        }
+    }
+
+
+
+
+
+
+
+    // ═══════════════════════════════════════════════════════════
+    // SISTEMA DE SYNC — Siempre activo, rol obligatorio
+    // ═══════════════════════════════════════════════════════════
+
+    var SYNC_ROLE = sessionStorage.getItem('syncRole') || 'off';
+    var syncPullInterval = null;
+    var syncPushTimer = null;
+    var lastPushTime = 0;
+    var lastSyncTimestamp = '';
+    var lastNotifiedTimestamp = '';
+    var syncNotifications = [];
+
+    // Al cargar: si ya tiene rol → conectar automático
+    // Si no tiene rol → mostrar modal obligatorio tras 800ms
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            if (SYNC_ROLE !== 'off') {
+                setRole(SYNC_ROLE, true); // reconectar silencioso
+            } else {
+                mostrarModalRolObligatorio();
+            }
+        }, 800);
+    });
+
+    function mostrarModalRolObligatorio() {
+        var m = document.getElementById('roleModal');
+        if (m) m.style.display = 'flex';
+    }
+
+    // ── Indicador ──────────────────────────────────────────────
+    function setSyncIndicator(state, label) {
+        var dot = document.getElementById('syncDot');
+        var lbl = document.getElementById('syncLabel');
+        var ind = document.getElementById('syncIndicator');
+        if (dot) {
+            var cls = {ok:'sync-dot-ok',push:'sync-dot-push',pull:'sync-dot-pull',err:'sync-dot-err'};
+            dot.className = 'w-2 h-2 rounded-full transition-colors '+(cls[state]||'bg-[#4a5568]');
+        }
+        if (lbl) lbl.textContent = label;
+        if (ind) ind.classList.add('active');
+        syncLog(label, state==='ok'?'#22c55e':state==='err'?'#ef4444':state==='push'?'#e9c400':'#00daf3');
+    }
+
+    // ── Log visible ────────────────────────────────────────────
+    function syncLog(msg, color) {
+        var box = document.getElementById('syncDebugBox');
+        if (!box) return;
+        var line = document.createElement('div');
+        line.style.cssText = 'font-size:11px;padding:1px 0;color:'+(color||'#bac9cc')+';font-family:monospace;';
+        var t = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        line.textContent = '['+t+'] '+msg;
+        box.insertBefore(line, box.firstChild);
+        if (box.children.length > 12) box.removeChild(box.lastChild);
+    }
+
+    // ── Notificaciones ─────────────────────────────────────────
+    function addSyncNotification(action) {
+        if (!action) return;
+        var icons = {add:'➕',delete:'🗑️',score:'✏️',config:'⚙️',move:'↕️'};
+        var icon = icons[action.type]||'🔄';
+        var msg = (action.description||'Cambio')+(action.by?' · '+action.by:'');
+        var time = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+        syncNotifications.unshift({icon:icon,msg:msg,time:time});
+        if (syncNotifications.length>8) syncNotifications.pop();
+        var badge = document.getElementById('syncNotifBadge');
+        if (badge){badge.textContent=syncNotifications.length;badge.classList.remove('hidden');}
+        var el = document.createElement('div');
+        el.style.cssText='position:fixed;top:70px;right:12px;z-index:200;background:#1a1b22;border:1px solid #00daf3;'+
+            'color:#e3e1ea;padding:10px 16px;border-radius:10px;font-family:Manrope,sans-serif;font-size:0.8rem;font-weight:700;'+
+            'box-shadow:0 6px 20px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.3s;max-width:280px;';
+        el.innerHTML='<span style="color:#00daf3">'+icon+'</span> '+msg+
+            '<br><span style="color:#6b7280;font-size:0.7rem;font-weight:400">'+time+'</span>';
+        document.body.appendChild(el);
+        setTimeout(function(){el.style.opacity='1';},30);
+        setTimeout(function(){el.style.opacity='0';setTimeout(function(){el.remove();},400);},6000);
+    }
+
+    function renderSyncNotifications() {
+        var panel = document.getElementById('syncNotifPanel');
+        if (!panel) return;
+        if (!syncNotifications.length){
+            panel.innerHTML='<p class="text-[#4a5568] text-xs text-center py-3">Sin actividad reciente</p>';return;
+        }
+        panel.innerHTML=syncNotifications.map(function(n){
+            return '<div class="flex gap-2 py-2 border-b border-[#4a5568]/20 last:border-0">'+
+                '<span class="text-sm">'+n.icon+'</span>'+
+                '<div><p class="text-xs text-[#e3e1ea] font-bold">'+n.msg+'</p>'+
+                '<p class="text-[10px] text-[#4a5568]">'+n.time+'</p></div></div>';
+        }).join('');
+    }
+
+    function toggleNotifPanel() {
+        var panel = document.getElementById('syncNotifDropdown');
+        if (!panel) return;
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')){
+            renderSyncNotifications();
+            var badge=document.getElementById('syncNotifBadge');
+            if(badge)badge.classList.add('hidden');
+        }
+    }
+
+    // ── Restricciones de rol ───────────────────────────────────
+    function applyRoleRestrictions() {
+        var body = document.body;
+        var banner = document.getElementById('readonlyBanner');
+        var bannerLabel = document.getElementById('readonlyBannerLabel');
+        body.classList.remove('readonly-mode','operator-mode');
+        if (banner) banner.classList.remove('show');
+        if (SYNC_ROLE==='lectura'){
+            body.classList.add('readonly-mode');
+            if(banner){banner.classList.add('show');if(bannerLabel)bannerLabel.textContent='👁 MODO LECTURA';}
+        } else if (SYNC_ROLE==='operador'){
+            body.classList.add('operator-mode');
+            if(banner){banner.classList.add('show');if(bannerLabel)bannerLabel.textContent='🎮 OPERADOR';}
+            document.querySelectorAll('[onclick*="openConfigModal"]').forEach(function(b){
+                b.setAttribute('disabled','');b.style.opacity='0.4';b.style.pointerEvents='none';
+            });
+        } else {
+            document.querySelectorAll('[onclick*="openConfigModal"]').forEach(function(b){
+                b.removeAttribute('disabled');b.style.opacity='';b.style.pointerEvents='';
+            });
+        }
+    }
+
+    function updateSyncButton() {
+        var btn = document.getElementById('syncBtn');
+        if (!btn) return;
+        var cfg = {
+            supervisor:{icon:'admin_panel_settings',color:'#e9c400',label:'Supervisor'},
+            operador:  {icon:'manage_accounts',     color:'#00daf3',label:'Operador'},
+            lectura:   {icon:'visibility',           color:'#bac9cc',label:'Lectura'},
+            off:       {icon:'sync',                 color:'#ef4444',label:'Sin rol'}
+        };
+        var c = cfg[SYNC_ROLE]||cfg.off;
+        btn.innerHTML='<span class="material-symbols-outlined text-sm">'+c.icon+'</span> '+c.label;
+        btn.style.color=c.color;
+        btn.style.borderColor=c.color+'55';
+    }
+
+    // ── Botón sync → siempre abre modal para CAMBIAR rol ──────
+    function toggleSyncMode() {
+        // No desactiva — solo abre modal para cambiar rol
+        document.getElementById('roleModal').style.display='flex';
+    }
+
+    function selectRole(role) {
+        document.getElementById('roleModal').style.display='none';
+        setRole(role, false);
+    }
+
+    // ── Activar rol ────────────────────────────────────────────
+    function setRole(role, silent) {
+        SYNC_ROLE = role;
+        sessionStorage.setItem('syncRole', role);
+        if (syncPullInterval){clearInterval(syncPullInterval);syncPullInterval=null;}
+        clearTimeout(syncPushTimer);syncPushTimer=null;
+        lastPushTime=0;lastSyncTimestamp='';lastNotifiedTimestamp='';
+        applyRoleRestrictions();
+        updateSyncButton();
+
+        var labels={supervisor:'👑 Supervisor',operador:'🎮 Operador',lectura:'👁 Lectura'};
+        if(!silent) showToast('✅ Conectado como '+labels[role], true);
+        syncLog('=== Rol: '+role+' ===','#e9c400');
+
+        // Mostrar panel de diagnóstico
+        var dbg=document.getElementById('syncDebugPanel');
+        if(dbg) dbg.classList.remove('hidden');
+
+        // Push inicial si puede editar
+        if(role==='supervisor'||role==='operador'){
+            setSyncIndicator('push','Conectando...');
+            schedulePush(null);
+        } else {
+            setSyncIndicator('pull','Esperando...');
+        }
+
+        // Pull automático cada 4s para TODOS
+        doPull();
+        syncPullInterval=setInterval(doPull, 4000);
+    }
+
+    // ── Payload completo ───────────────────────────────────────
+    function buildPayload(actionInfo) {
+        var tid=(document.getElementById('tournamentSelector')||{}).value
+                ||localStorage.getItem('selectedTournament')||'ruleta';
+        var p={
+            tournamentType:    tid,
+            date:              localStorage.getItem('tournamentDate')||'',
+            director:          localStorage.getItem('tournamentDirector')||'',
+            endTime:           localStorage.getItem('registrationEndTime')||'',
+            prizePool:         localStorage.getItem('prizePool')||'0',
+            prizes:            JSON.parse(localStorage.getItem('tournamentPrizes')||'{}'),
+            limits:            getGameLimits(),
+            chips:             getChips(),
+            rouletteBallCount: localStorage.getItem('rouletteBallCount')||'3',
+            clients:           getClientesTorneo(tid),
+            finalists:         getFinalists(tid),
+            pushedBy:          SYNC_ROLE,
+            pushedAt:          Date.now()
+        };
+        if(actionInfo) p.lastAction=actionInfo;
+        return p;
+    }
+
+    // ── Aplicar estado remoto ──────────────────────────────────
+    function applyRemoteState(s) {
+        if(!s||!s.tournamentType) return;
+        var tid=s.tournamentType;
+        var raw=Storage.prototype.setItem;
+        raw.call(localStorage,'selectedTournament',   tid);
+        raw.call(localStorage,'tournamentDate',       s.date||'');
+        raw.call(localStorage,'tournamentDirector',   s.director||'');
+        raw.call(localStorage,'registrationEndTime',  s.endTime||'');
+        raw.call(localStorage,'prizePool',            s.prizePool||'0');
+        raw.call(localStorage,'tournamentPrizes',     JSON.stringify(s.prizes||{}));
+        raw.call(localStorage,'gameLimits',           JSON.stringify(s.limits||{}));
+        raw.call(localStorage,'rouletteBallCount',    s.rouletteBallCount||'3');
+        if(s.chips)     raw.call(localStorage,'tournament_chips', JSON.stringify(s.chips));
+        if(s.clients)   raw.call(localStorage,'clientes_'+tid,    JSON.stringify(s.clients));
+        if(s.finalists) raw.call(localStorage,'finalistas_'+tid,  JSON.stringify(s.finalists));
+
+        // Actualizar UI
+        var sel=document.getElementById('tournamentSelector');
+        if(sel&&sel.value!==tid){sel.value=tid;changeTournament();return;}
+        renderClients(tid);
+
+        // Fecha visible
+        if(s.date){
+            var parts=s.date.split('-');
+            if(parts.length===3){
+                var d=new Date(parts[0],parts[1]-1,parts[2]);
+                var fmt=d.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+                          .replace(/^\w/,function(c){return c.toUpperCase();});
+                var dd=document.getElementById('mainDateDisplay');
+                if(dd)dd.textContent='Fecha del Torneo: '+fmt;
+            }
+        }
+
+        // Campos de config
+        var setF=function(id,val,plain){
+            var el=document.getElementById(id);
+            if(!el||val==null)return;
+            el.value=plain?(val||''):formatNumberForDisplay(val);
+        };
+        setF('tournamentDate',    s.date,              true);
+        setF('tournamentDirector',s.director,          true);
+        setF('registrationEndTime',s.endTime,          true);
+        setF('rouletteBallCount', s.rouletteBallCount, true);
+        setF('prizePoolInput',    s.prizePool,         false);
+        var p=s.prizes||{};
+        setF('firstPrize',  p.first,  false);
+        setF('secondPrize', p.second, false);
+        setF('thirdPrize',  p.third,  false);
+        var l=s.limits||{};
+        setF('minBetInput',   l.minBet,   false);
+        setF('maxBetInput',   l.maxBet,   false);
+        setF('minPlenoInput', l.minPleno, false);
+        setF('maxPlenoInput', l.maxPleno, false);
+    }
+
+    // ── PUSH ───────────────────────────────────────────────────
+    function schedulePush(actionInfo) {
+        if(SYNC_ROLE!=='supervisor'&&SYNC_ROLE!=='operador') return;
+        clearTimeout(syncPushTimer);
+        syncPushTimer=setTimeout(async function(){
+            syncPushTimer=null;
+            try {
+                setSyncIndicator('push','Guardando...');
+                var payload=buildPayload(actionInfo);
+                var json=JSON.stringify(payload);
+                syncLog('PUSH '+json.length+'b → GAS','#e9c400');
+                var params=new URLSearchParams();
+                params.append('action','syncPush');
+                params.append('data',json);
+                var resp=await fetch(SCRIPT_URL,{
+                    method:'POST',redirect:'follow',cache:'no-cache',
+                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                    body:params.toString()
+                });
+                var text=await resp.text();
+                syncLog('resp: '+text.substring(0,80),'#bac9cc');
+                var result=JSON.parse(text);
+                if(result.status==='success'&&result.data&&result.data.timestamp){
+                    lastPushTime=Date.now();
+                    lastSyncTimestamp=result.data.timestamp;
+                    setSyncIndicator('ok','✓ '+result.data.timestamp.slice(11,16));
+                } else {
+                    setSyncIndicator('err','Error: '+(result.message||'?'));
+                }
+            } catch(err){
+                setSyncIndicator('err','Sin red');
+                syncLog('PUSH ERR: '+err.message,'#ef4444');
+            }
+        },800);
+    }
+
+    // ── PULL ───────────────────────────────────────────────────
+    async function doPull() {
+        if(syncPushTimer!==null) return;
+        if(lastPushTime>0&&(Date.now()-lastPushTime)<3500) return;
+        try {
+            var url=SCRIPT_URL+'?action=syncPull&nocache='+Date.now();
+            var resp=await fetch(url,{redirect:'follow',cache:'no-cache'});
+            var text=await resp.text();
+            var result=JSON.parse(text);
+            if(result.status!=='success'||!result.data||result.data.empty){
+                setSyncIndicator(SYNC_ROLE==='lectura'?'pull':'ok',
+                    SYNC_ROLE==='lectura'?'Esperando...':lastSyncTimestamp.slice(11,16)||'');
+                return;
+            }
+            var d=result.data;
+            if(d.timestamp===lastSyncTimestamp){
+                setSyncIndicator('ok',d.timestamp.slice(11,16));return;
+            }
+            var s=d.state;
+            if(!s) return;
+            if(s.pushedAt&&lastPushTime>0&&Number(s.pushedAt)<lastPushTime){
+                lastSyncTimestamp=d.timestamp;return;
+            }
+            lastSyncTimestamp=d.timestamp;
+            applyRemoteState(s);
+            setSyncIndicator('ok','↓ '+d.timestamp.slice(11,16));
+            syncLog('PULL: '+d.timestamp.slice(11,16)+' de '+(s.pushedBy||'?'),'#22c55e');
+            if(d.lastAction&&d.timestamp!==lastNotifiedTimestamp){
+                lastNotifiedTimestamp=d.timestamp;
+                addSyncNotification(d.lastAction);
+            }
+            var tsEl=document.getElementById('readonlyTimestamp');
+            if(tsEl&&s.pushedBy)tsEl.textContent='— '+(s.pushedBy)+' · '+d.timestamp.slice(11,16);
+        } catch(err){
+            setSyncIndicator('err','Sin conexión');
+        }
+    }
+
+    // ── Prueba de conexión ─────────────────────────────────────
+    async function testSyncConnection() {
+        syncLog('=== PRUEBA ===','#e9c400');
+        try {
+            var resp=await fetch(SCRIPT_URL+'?action=syncPull&nocache='+Date.now(),{redirect:'follow',cache:'no-cache'});
+            syncLog('GET: '+resp.status+' '+((await resp.text()).substring(0,80)),'#22c55e');
+        } catch(e){ syncLog('GET ERR: '+e.message,'#ef4444'); }
+        try {
+            var params=new URLSearchParams();
+            params.append('action','syncPush');
+            params.append('data',JSON.stringify({tournamentType:'ruleta',clients:[],
+                pushedBy:SYNC_ROLE||'test',pushedAt:Date.now(),date:'',director:'',
+                prizePool:'0',prizes:{},limits:{},rouletteBallCount:'3'}));
+            var resp2=await fetch(SCRIPT_URL,{method:'POST',redirect:'follow',
+                headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params.toString()});
+            syncLog('POST: '+resp2.status+' '+((await resp2.text()).substring(0,100)),'#22c55e');
+        } catch(e){ syncLog('POST ERR: '+e.message,'#ef4444'); }
+    }
+
+    // ── Hooks de acciones ──────────────────────────────────────
+    function onClientAdded(nombre,apellido){
+        syncLog('➕ '+(nombre+' '+apellido).trim(),'#22c55e');
+        schedulePush({type:'add',description:(nombre+' '+apellido).trim()+' agregado',by:SYNC_ROLE,at:Date.now()});
+    }
+    function onClientDeleted(nombre){
+        syncLog('🗑️ '+nombre,'#ef4444');
+        schedulePush({type:'delete',description:nombre+' eliminado',by:SYNC_ROLE,at:Date.now()});
+    }
+    function onScoreChanged(){ schedulePush(null); }
+    function onConfigChanged(){
+        if(SYNC_ROLE==='supervisor')
+            schedulePush({type:'config',description:'Configuración actualizada',by:'supervisor',at:Date.now()});
+    }
+
+    // === MENÚ HAMBURGUESA ===
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobileMenu');
+        const hb1 = document.getElementById('hb1');
+        const hb2 = document.getElementById('hb2');
+        const hb3 = document.getElementById('hb3');
+        const isOpen = !menu.classList.contains('hidden');
+        if (isOpen) {
+            menu.classList.add('hidden');
+            hb1.style.transform = ''; hb2.style.opacity = '1'; hb3.style.transform = '';
+        } else {
+            menu.classList.remove('hidden');
+            hb1.style.transform = 'translateY(8px) rotate(45deg)';
+            hb2.style.opacity = '0';
+            hb3.style.transform = 'translateY(-8px) rotate(-45deg)';
+        }
+    }
+
+    function closeMobileMenu() {
+        const menu = document.getElementById('mobileMenu');
+        menu.classList.add('hidden');
+        const hb1 = document.getElementById('hb1');
+        const hb2 = document.getElementById('hb2');
+        const hb3 = document.getElementById('hb3');
+        hb1.style.transform = ''; hb2.style.opacity = '1'; hb3.style.transform = '';
+    }
+
+    // Actualizar nombre del torneo en header
+    function updateHeaderTournamentName() {
+        const tid = localStorage.getItem('selectedTournament') || 'ruleta';
+        const t = TOURNAMENTS[tid];
+        const el = document.getElementById('headerTournamentName');
+        if (el && t) el.textContent = t.name;
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(updateHeaderTournamentName, 500);
+    });
+    </script>
+</body>
+</html>
+
+
