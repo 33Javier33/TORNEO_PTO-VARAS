@@ -115,18 +115,26 @@
 
         /* Chips */
         .chip {
-            width: 50px; height: 50px; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-weight: 900;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.4), 0 0 8px rgba(0,218,243,0.2);
-            border: 2px solid rgba(255,255,255,0.15);
-            outline: 1px solid rgba(0,218,243,0.2);
-            line-height: 1;
+            width: 56px; height: 56px; border-radius: 50%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            font-weight: 900; line-height: 1.1;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            box-shadow: inset 0 -3px 6px rgba(0,0,0,0.35),
+                        inset 0 3px 6px rgba(255,255,255,0.12),
+                        0 4px 12px rgba(0,0,0,0.4),
+                        0 0 0 2px rgba(255,255,255,0.08),
+                        0 0 0 4px rgba(0,0,0,0.2),
+                        0 0 0 6px rgba(255,255,255,0.05);
+            border: 3px dashed rgba(255,255,255,0.25);
             background-size: cover;
             background-position: center;
+            position: relative;
+            cursor: default;
         }
-        .chip-rack { display:flex; gap:0.4rem; justify-content:center; flex-wrap:wrap; padding-top:4px; }
+        .chip-value { font-size: 1rem; font-family: 'Space Grotesk', sans-serif; }
+        .chip-name  { font-size: 0.5rem; font-family: 'Manrope', sans-serif; font-weight: 700; letter-spacing: 0.05em; opacity: 0.85; text-transform: uppercase; }
+        .chip-rack { display:flex; gap:0.6rem; justify-content:center; flex-wrap:wrap; padding-top:4px; }
 
         /* Header info */
         #top-left-info { text-align: left; }
@@ -308,6 +316,7 @@
         function getTournamentType() { return localStorage.getItem('selectedTournament') || 'ruleta'; }
         function getClients() { return JSON.parse(localStorage.getItem(`clientes_${getTournamentType()}`) || '[]'); }
         function formatNumber(num) { return Number(num || 0).toLocaleString('es-CL'); }
+        const GITHUB_FICHAS = 'https://raw.githubusercontent.com/33Javier33/TORNEO_PTO-VARAS/main/fichas/';
 
         function renderChipRack() {
             const tournamentType = getTournamentType();
@@ -329,22 +338,50 @@
                 rack.innerHTML = '';
                 const chips = JSON.parse(localStorage.getItem('tournament_chips') || '[]');
                 if (chips.length === 0) {
-                    rack.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">No hay fichas definidas.</p>`;
+                    rack.innerHTML = `<p class="text-sm text-on-surface-variant mt-2 font-label">No hay fichas definidas.</p>`;
                 } else {
                     chips.forEach(chip => {
                         const chipEl = document.createElement('div');
                         chipEl.className = 'chip';
+
+                        // Fondo: imagen si existe, color de base siempre
+                        chipEl.style.backgroundColor = chip.color || '#6D4C41';
                         if (chip.image && chip.image.trim() !== '') {
-                            chipEl.style.backgroundImage = `url('../fichas/${chip.image}')`;
+                            // La pantalla está en /torneo/, fichas en /fichas/
+                            chipEl.style.backgroundImage = `url('${GITHUB_FICHAS}${chip.image}')`;
+                            chipEl.style.backgroundSize = 'cover';
+                            chipEl.style.backgroundPosition = 'center';
                         }
-                        chipEl.style.backgroundColor = chip.color;
+
+                        // Color del texto según luminosidad del fondo
+                        const hex = (chip.color||'#333').replace('#','').padEnd(6,'0');
+                        const r=parseInt(hex.substr(0,2),16)||0;
+                        const g=parseInt(hex.substr(2,2),16)||0;
+                        const b=parseInt(hex.substr(4,2),16)||0;
+                        const isLight = (0.299*r + 0.587*g + 0.114*b) > 150;
+                        const txtColor = chip.image ? '#ffffff' : (isLight ? '#1e293b' : '#ffffff');
+                        chipEl.style.color = txtColor;
+
                         const formattedValue = formatNumber(chip.value);
-                        chipEl.textContent = formattedValue;
                         const len = formattedValue.length;
-                        if (len <= 4) { chipEl.style.fontSize = '1.1rem'; } 
-                        else if (len <= 6) { chipEl.style.fontSize = '0.9rem'; } 
-                        else if (len <= 8) { chipEl.style.fontSize = '0.7rem'; } 
-                        else { chipEl.style.fontSize = '0.6rem'; }
+
+                        // Valor
+                        const valueSpan = document.createElement('span');
+                        valueSpan.className = 'chip-value';
+                        valueSpan.style.fontSize = len <= 3 ? '1.1rem' : len <= 5 ? '0.85rem' : len <= 7 ? '0.7rem' : '0.6rem';
+                        valueSpan.style.textShadow = '1px 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.7)';
+                        valueSpan.textContent = formattedValue;
+                        chipEl.appendChild(valueSpan);
+
+                        // Nombre del color (si no hay imagen, mostrar abajo)
+                        const colorLabel = chip.colorName || chip.image?.replace(/\.png$/i,'') || '';
+                        if (colorLabel && !chip.image) {
+                            const nameSpan = document.createElement('span');
+                            nameSpan.className = 'chip-name';
+                            nameSpan.textContent = colorLabel;
+                            chipEl.appendChild(nameSpan);
+                        }
+
                         rack.appendChild(chipEl);
                     });
                 }
@@ -810,5 +847,3 @@
     </script>
 </body>
 </html>
-
-
