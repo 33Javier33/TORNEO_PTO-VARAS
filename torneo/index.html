@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabla de Puntajes del Torneo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-dim": "#121319",
+                        "surface-container-highest": "#34343b",
+                        "surface-container-high": "#292a30",
+                        "surface-container": "#1e1f26",
+                        "surface-container-low": "#1a1b22",
+                        "surface-container-lowest": "#0d0e14",
+                        "surface-bright": "#383940",
+                        "on-surface": "#e3e1ea",
+                        "on-surface-variant": "#bac9cc",
+                        "outline": "#849396",
+                        "outline-variant": "#3b494c",
+                        "primary-container": "#00e5ff",
+                        "primary-fixed-dim": "#00daf3",
+                        "on-primary": "#00363d",
+                        "secondary-fixed-dim": "#e9c400",
+                        "secondary-container": "#ffdb3c",
+                        "tertiary-fixed-dim": "#ffb4a2",
+                        "on-secondary": "#3a3000",
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+        body {
+            background-color: #121319;
+            color: #e3e1ea;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .glass-card {
+            background: rgba(52, 52, 59, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* Tabla neon */
+        .neon-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+        .neon-table thead tr th {
+            background-color: #0d0e14;
+            color: #bac9cc;
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            padding: 0.85rem 1rem;
+            font-weight: 700;
+        }
+        .neon-table thead tr th:first-child { border-radius: 0.5rem 0 0 0.5rem; padding-left: 2rem; }
+        .neon-table thead tr th:last-child  { border-radius: 0 0.5rem 0.5rem 0; padding-right: 2rem; text-align: right; }
+        .neon-table tbody tr td {
+            padding: 0.8rem 1rem;
+            font-size: 0.85rem;
+            background: rgba(52,52,59,0.35);
+            backdrop-filter: blur(10px);
+            border: none;
+            transition: background 0.2s;
+        }
+        .neon-table tbody tr:hover td { background: rgba(41,42,48,0.7); }
+        .neon-table tbody tr td:first-child { border-radius: 0.5rem 0 0 0.5rem; padding-left: 1rem; }
+        .neon-table tbody tr td:last-child  { border-radius: 0 0.5rem 0.5rem 0; padding-right: 2rem; text-align: right; }
+
+        /* Posiciones top */
+        .row-gold td:first-child   { position: relative; }
+        .row-gold td:first-child::before   { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#e9c400; border-radius:2px 0 0 2px; box-shadow:0 0 12px rgba(233,196,0,0.5); }
+        .row-silver td:first-child::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#bac9cc; border-radius:2px 0 0 2px; box-shadow:0 0 10px rgba(186,201,204,0.2); }
+        .row-bronze td:first-child::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#ffb4a2; border-radius:2px 0 0 2px; box-shadow:0 0 10px rgba(255,180,162,0.25); }
+        .row-finalist td:first-child::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#00daf3; border-radius:2px 0 0 2px; box-shadow:0 0 10px rgba(0,218,243,0.3); }
+
+        td.score { font-family: 'Space Grotesk', sans-serif; font-weight: 500; text-align: right; color: #bac9cc; font-size: 0.85rem; }
+        td.total-score { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #e9c400; font-size: 0.95rem; }
+        td.rank { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1rem; }
+
+        /* Cards superiores */
+        .info-card {
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .info-card .card-icon {
+            position: absolute;
+            right: -6px; bottom: -6px;
+            opacity: 0.08;
+            font-size: 5rem !important;
+            transition: transform 0.5s;
+        }
+        .info-card:hover .card-icon { transform: scale(1.1); }
+
+        /* Chips */
+        .chip {
+            width: 50px; height: 50px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: 900;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.4), 0 0 8px rgba(0,218,243,0.2);
+            border: 2px solid rgba(255,255,255,0.15);
+            outline: 1px solid rgba(0,218,243,0.2);
+            line-height: 1;
+            background-size: cover;
+            background-position: center;
+        }
+        .chip-rack { display:flex; gap:0.4rem; justify-content:center; flex-wrap:wrap; padding-top:4px; }
+
+        /* Header info */
+        #top-left-info { text-align: left; }
+        #tournamentDate { font-family: 'Manrope', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #bac9cc; line-height: 1.3; }
+        .clock { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 300; color: #e3e1ea; line-height: 1; }
+        .clock-pm { font-size: 1rem; font-weight: 700; color: #00daf3; }
+
+        /* Podio ganadores */
+        .winner-podium { display:flex; justify-content:center; align-items:flex-end; gap:1rem; text-align:center; padding:2rem; }
+        .podium-place { padding:1.5rem; border-radius:0.75rem; width:30%; color:white; }
+        .podium-1 { background: linear-gradient(135deg,#b45309,#f59e0b); order:2; min-height:200px; box-shadow: 0 0 30px rgba(245,158,11,0.3); }
+        .podium-2 { background: linear-gradient(135deg,#334155,#64748b); order:1; min-height:150px; }
+        .podium-3 { background: linear-gradient(135deg,#7c2d12,#9a3412); order:3; min-height:120px; }
+
+        /* Loader */
+        #page-loader { position:fixed; inset:0; z-index:9999; background:#121319; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:1.5rem; transition:opacity 0.6s ease,visibility 0.6s ease; }
+        #page-loader.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+        .loader-logo { font-family:'Space Grotesk',sans-serif; font-size:2rem; font-weight:900; color:#00daf3; letter-spacing:0.15em; text-transform:uppercase; animation:loaderPulse 1.5s ease-in-out infinite; }
+        .loader-bar-track { width:220px; height:2px; background:rgba(0,218,243,0.15); border-radius:99px; overflow:hidden; }
+        .loader-bar-fill { height:100%; width:0%; background:linear-gradient(90deg,#00daf3,#e9c400); border-radius:99px; animation:loaderBar 1.2s ease-in-out forwards; }
+        .loader-dots { display:flex; gap:0.5rem; }
+        .loader-dot { width:6px; height:6px; border-radius:50%; background:rgba(0,218,243,0.5); animation:loaderDot 1.2s ease-in-out infinite; }
+        .loader-dot:nth-child(2){animation-delay:0.2s} .loader-dot:nth-child(3){animation-delay:0.4s}
+        @keyframes loaderPulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        @keyframes loaderBar{0%{width:0%}80%{width:90%}100%{width:100%}}
+        @keyframes loaderDot{0%,100%{transform:translateY(0);opacity:0.3}50%{transform:translateY(-5px);opacity:1}}
+
+        /* Skeleton shimmer */
+        .skeleton-cell { height:12px; border-radius:4px; background:linear-gradient(90deg,#1e1f26 25%,#292a30 50%,#1e1f26 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+        /* Animaciones entrada */
+        .card-enter { animation: cardFadeIn 0.4s ease forwards; }
+        @keyframes cardFadeIn { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+        @keyframes rowFadeIn { from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)} }
+
+        /* Scroll */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0d0e14; }
+        ::-webkit-scrollbar-thumb { background: #3b494c; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00daf3; }
+
+        /* Título Final y Ganadores */
+        .title-section { margin-bottom: 1.5rem; }
+
+        /* Prize card flip */
+        #prize-card-container { perspective: 1000px; }
+        #prize-card-content { position:relative; width:100%; height:100%; transition:transform 0.6s,opacity 0.5s; transform-style:preserve-3d; }
+        .prize-exiting { transform:rotateY(180deg); }
+
+        /* Skeleton rows */
+        .skeleton-row td { padding: 0.5rem 1rem; }
+    </style>
+</head>
+<body class="bg-surface-dim text-on-surface font-body min-h-screen flex flex-col">
+
+    <!-- Loader -->
+    <div id="page-loader">
+        <div class="loader-logo">🏆 Torneo</div>
+        <div class="loader-bar-track"><div class="loader-bar-fill"></div></div>
+        <div class="loader-dots">
+            <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-surface-dim border-b border-outline-variant/20 shadow-[0_0_20px_rgba(0,218,243,0.04)] sticky top-0 z-50">
+        <div class="flex justify-between items-center w-full px-6 py-3 max-w-[1600px] mx-auto">
+            <!-- Fecha y reloj -->
+            <div id="top-left-info">
+                <div id="tournamentDate"></div>
+                <div class="flex items-baseline gap-1">
+                    <span id="clock" class="clock">00:00:00</span>
+                </div>
+            </div>
+            <!-- Título torneo -->
+            <div class="flex-grow text-center px-4">
+                <h1 id="tournamentTitle" class="font-headline font-black text-2xl md:text-3xl text-on-surface tracking-tighter uppercase">Cargando...</h1>
+                <div class="flex items-center justify-center gap-2 mt-0.5">
+                    <span class="w-2 h-2 rounded-full bg-primary-fixed-dim animate-pulse"></span>
+                    <span class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">EN VIVO</span>
+                </div>
+            </div>
+            <!-- Logo -->
+            <a href="../index.html" class="flex-shrink-0 block transition-transform duration-200 hover:scale-105">
+                <img src="img/dreams1.png" alt="Logo" class="w-20 h-auto rounded-lg opacity-90 hover:opacity-100 transition-opacity"
+                     onerror="this.onerror=null;this.src='https://placehold.co/100x75/1e1f26/00daf3?text=CASINO';">
+            </a>
+        </div>
+    </header>
+
+    <!-- Vista clasificación -->
+    <div id="classificationView" class="w-full flex-1">
+        <div class="max-w-[1600px] mx-auto px-4 py-4">
+
+            <!-- Cards superiores -->
+            <div id="top-cards-grid" class="grid gap-3 mb-4 transition-all duration-500">
+
+                <div id="prize-card-container" class="info-card glass-card border border-outline-variant/20">
+                    <span class="material-symbols-outlined card-icon text-primary-fixed-dim">payments</span>
+                    <div id="prize-card-content"></div>
+                </div>
+
+                <div id="chip-card" class="info-card glass-card border border-outline-variant/20 hidden">
+                    <div id="chip-card-limits-content" class="mb-1 pb-1 border-b border-outline-variant/30"></div>
+                    <p id="chip-rack-label" class="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.2em] mb-1">Valor de Fichas</p>
+                    <div id="chip-rack" class="chip-rack"></div>
+                </div>
+
+                <div id="registration-card" class="info-card glass-card border border-outline-variant/20">
+                    <span class="material-symbols-outlined card-icon text-tertiary-fixed-dim">groups</span>
+                    <p class="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.2em] mb-1">INSCRIPCIONES</p>
+                    <p id="totalPlayersDisplay" class="font-headline text-3xl font-bold text-on-surface">0</p>
+                    <p class="text-[10px] font-label text-on-surface-variant mt-0.5">jugadores únicos</p>
+                    <p id="endTimeDisplay" class="font-label text-xs font-bold text-on-surface-variant mt-1"></p>
+                    <div id="warningMessage" class="hidden mt-1">
+                        <p id="countdownTimer" class="font-headline font-bold text-red-400 animate-pulse text-lg"></p>
+                    </div>
+                </div>
+
+                <div id="summary-card" class="info-card glass-card border border-outline-variant/20 hidden"></div>
+            </div>
+
+            <!-- Tabla clasificación -->
+            <div class="glass-card rounded-xl border border-outline-variant/20 overflow-hidden">
+                <div class="px-6 py-3 border-b border-outline-variant/20 flex items-center gap-3">
+                    <span class="w-6 h-[2px] bg-primary-fixed-dim"></span>
+                    <h2 class="font-headline text-sm font-bold uppercase tracking-widest text-on-surface-variant">Clasificación</h2>
+                </div>
+                <div class="overflow-x-auto p-3">
+                    <table class="neon-table">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista Final -->
+    <div id="finalView" class="max-w-[1600px] mx-auto px-4 py-4 w-full" style="display:none;">
+        <div class="title-section">
+            <h1 class="font-headline text-4xl font-black text-red-400 uppercase tracking-tighter">⚡ Mesa Final</h1>
+            <p class="text-on-surface-variant text-sm mt-1">Los mejores puntajes compiten ahora</p>
+        </div>
+        <div class="glass-card rounded-xl border border-outline-variant/20 overflow-hidden">
+            <div class="overflow-x-auto p-3">
+                <table class="neon-table"><thead id="finalTableHeader"></thead><tbody id="finalTableBody"></tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista Ganadores -->
+    <div id="winnersView" class="max-w-[1600px] mx-auto px-4 py-4 w-full" style="display:none;">
+        <div class="title-section text-center">
+            <h1 class="font-headline text-4xl font-black text-secondary-fixed-dim uppercase tracking-tighter">🏆 Ganadores del Torneo 🏆</h1>
+        </div>
+        <div id="winnersPodium" class="winner-podium"></div>
+    </div>
+
+    <footer class="mt-auto py-4 text-center border-t border-outline-variant/10">
+        <p class="text-[10px] font-label text-on-surface-variant/40 uppercase tracking-widest">CarlosPN Interactive®</p>
+    </footer>
+
+    <script>
+        const TOURNAMENTS = {
+            ruleta: { name: 'Torneo de Ruleta', type: 'roulette', finalistsCount: 5 },
+            draw_poker: { name: 'Torneo de Draw Poker', rounds: ['Puntaje'], type: 'cards', finalistsCount: 6 },
+            blackjack: { name: 'Torneo de Blackjack', rounds: ['Puntaje'], type: 'cards', finalistsCount: 6 },
+            ruleta_vip: { name: 'Torneo de Ruleta VIP', type: 'roulette', finalistsCount: 5 },
+            draw_poker_vip: { name: 'Torneo de Draw Poker VIP', rounds: ['Puntaje'], type: 'cards', finalistsCount: 6 },
+            blackjack_vip: { name: 'Torneo de Blackjack VIP', rounds: ['Puntaje'], type: 'cards', finalistsCount: 6 }
+        };
+
+        let prizeViewIndex = 0;
+        let prizeInterval;
+        let countdownInterval = null;
+        
+        function getTournamentType() { return localStorage.getItem('selectedTournament') || 'ruleta'; }
+        function getClients() { return JSON.parse(localStorage.getItem(`clientes_${getTournamentType()}`) || '[]'); }
+        function formatNumber(num) { return Number(num || 0).toLocaleString('es-CL'); }
+
+        function renderChipRack() {
+            const tournamentType = getTournamentType();
+            const tournament = TOURNAMENTS[tournamentType];
+            const chipCard = document.getElementById('chip-card');
+            const rack = document.getElementById('chip-rack');
+            const chipRackLabel = document.getElementById('chip-rack-label');
+            if (!tournament) {
+                chipCard.classList.add('hidden');
+                return;
+            }
+            if (tournament.type === 'roulette') {
+                chipCard.classList.remove('hidden');
+                rack.innerHTML = '';
+                if (chipRackLabel) chipRackLabel.classList.add('hidden');
+            } else {
+                chipCard.classList.remove('hidden');
+                if (chipRackLabel) chipRackLabel.classList.remove('hidden');
+                rack.innerHTML = '';
+                const chips = JSON.parse(localStorage.getItem('tournament_chips') || '[]');
+                if (chips.length === 0) {
+                    rack.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">No hay fichas definidas.</p>`;
+                } else {
+                    chips.forEach(chip => {
+                        const chipEl = document.createElement('div');
+                        chipEl.className = 'chip';
+                        if (chip.image && chip.image.trim() !== '') {
+                            chipEl.style.backgroundImage = `url('../fichas/${chip.image}')`;
+                        }
+                        chipEl.style.backgroundColor = chip.color;
+                        const formattedValue = formatNumber(chip.value);
+                        chipEl.textContent = formattedValue;
+                        const len = formattedValue.length;
+                        if (len <= 4) { chipEl.style.fontSize = '1.1rem'; } 
+                        else if (len <= 6) { chipEl.style.fontSize = '0.9rem'; } 
+                        else if (len <= 8) { chipEl.style.fontSize = '0.7rem'; } 
+                        else { chipEl.style.fontSize = '0.6rem'; }
+                        rack.appendChild(chipEl);
+                    });
+                }
+            }
+            updateTopCardsLayout();
+        }
+
+        function goFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) { elem.requestFullscreen(); } 
+            else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+        }
+
+        function updateHeaderInfo() {
+            const tournamentType = getTournamentType();
+            const tournament = TOURNAMENTS[tournamentType];
+            if (!tournament) return;
+            document.getElementById('tournamentTitle').textContent = tournament.name;
+            document.getElementById('tournamentDate').textContent = getTournamentDate();
+        }
+
+        function updateActiveView() {
+            const viewState = localStorage.getItem('tournament_view_state') || 'classification';
+            
+            document.getElementById('classificationView').style.display = 'none';
+            document.getElementById('finalView').style.display = 'none';
+            document.getElementById('winnersView').style.display = 'none';
+            
+            updateHeaderInfo();
+            renderChipRack();
+            renderLimitsInChipCard();
+            updateRegistrationCard();
+            checkRegistrationStatus();
+            updateTopCardsLayout();
+
+            switch (viewState) {
+                case 'final': document.getElementById('finalView').style.display = 'block'; renderFinalTable(); break;
+                case 'winners': document.getElementById('winnersView').style.display = 'block'; renderWinnersPodium(); break;
+                default: document.getElementById('classificationView').style.display = 'block'; renderTournamentTable(); break;
+            }
+        }
+        
+        function updateTopCardsLayout() {
+            const grid = document.getElementById('top-cards-grid');
+            if (!grid) return;
+            const cards = [
+                document.getElementById('prize-card-container'),
+                document.getElementById('chip-card'),
+                document.getElementById('registration-card'),
+                document.getElementById('summary-card')
+            ];
+            const visibleCount = cards.filter(c => c && !c.classList.contains('hidden')).length;
+            grid.className = `grid gap-3 mb-4 transition-all duration-500`;
+            if (visibleCount === 1) grid.classList.add('grid-cols-1');
+            else if (visibleCount === 2) grid.classList.add('grid-cols-1', 'sm:grid-cols-2');
+            else if (visibleCount === 3) grid.classList.add('grid-cols-1', 'sm:grid-cols-3');
+            else grid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-4');
+        }
+        
+        function updatePrizeCard() {
+            const prizes = JSON.parse(localStorage.getItem('tournamentPrizes') || '{}');
+            const prizePool = parseInt(localStorage.getItem('prizePool') || '0');
+            const contentEl = document.getElementById('prize-card-content');
+            if (!contentEl) return;
+            const views = [
+                { title: 'POZO TOTAL',  value: `$${formatNumber(prizePool)}`,          color: 'text-primary-fixed-dim' },
+                { title: '🥉 3er Puesto', value: `$${formatNumber(prizes.third || 0)}`, color: 'text-tertiary-fixed-dim' },
+                { title: '🥈 2do Puesto', value: `$${formatNumber(prizes.second || 0)}`,color: 'text-on-surface-variant' },
+                { title: '🥇 1er Puesto', value: `$${formatNumber(prizes.first || 0)}`, color: 'text-secondary-fixed-dim' }
+            ];
+            const currentView = views[prizeViewIndex];
+            contentEl.classList.add('prize-exiting');
+            setTimeout(() => {
+                contentEl.innerHTML = `<p class="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.2em] mb-1">${currentView.title}</p><p class="font-headline text-2xl font-bold ${currentView.color}">${currentView.value}</p>`;
+                contentEl.classList.remove('prize-exiting');
+            }, 300);
+            prizeViewIndex = (prizeViewIndex + 1) % views.length;
+        }
+        
+        function formatPlayerName(nombre, apellido) {
+            if (!nombre || !apellido) return '';
+            const nombreParts = nombre.trim().split(' ').filter(n => n); 
+            const apellidoParts = apellido.trim().split(' ').filter(a => a);
+            let formattedNombre = nombreParts[0] || '';
+            if (nombreParts.length > 1) { formattedNombre += ` ${nombreParts[1].charAt(0)}.`; }
+            let formattedApellido = apellidoParts[0] || '';
+            if (apellidoParts.length > 1) { formattedApellido += ` ${apellidoParts[1].charAt(0)}.`; }
+            return `${formattedNombre} ${formattedApellido}`.trim();
+        }
+
+        function getTournamentRounds(tournamentType) {
+            const tournament = TOURNAMENTS[tournamentType];
+            if (!tournament) return [];
+            if (tournament.type === 'roulette') {
+                const ballCount = parseInt(localStorage.getItem('rouletteBallCount') || '3');
+                return Array.from({ length: ballCount }, (_, i) => `Bolita ${i + 1}`);
+            }
+            return tournament.rounds;
+        }
+
+        function getTournamentDate() {
+            const dateStr = localStorage.getItem('tournamentDate');
+            if (!dateStr) return 'Fecha no definida';
+            const [year, month, day] = dateStr.split('-');
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                .replace(/^\w/, c => c.toUpperCase());
+        }
+
+        function calculateTotal(client, tournamentType) {
+            const cleanValue = (val) => parseInt(String(val || '0').replace(/\./g, ''));
+            const rounds = getTournamentRounds(tournamentType);
+            if (!rounds) return 0;
+            return rounds.reduce((total, round) => {
+                const scoreKey = round.toLowerCase().replace(/ /g, '');
+                return total + cleanValue(client[scoreKey]);
+            }, 0);
+        }
+
+        function getBestEntryPerPlayer(allEntries, tournamentType) {
+            const playersMap = new Map();
+            allEntries.forEach(entry => {
+                if (!playersMap.has(entry.rut) || calculateTotal(entry, tournamentType) > calculateTotal(playersMap.get(entry.rut), tournamentType)) {
+                    playersMap.set(entry.rut, entry);
+                }
+            });
+            return Array.from(playersMap.values());
+        }
+
+        function renderTournamentTable() {
+            const tournamentType = getTournamentType();
+            const allEntries = getClients().filter(c => !c.isTableBreak);
+            const tournament = TOURNAMENTS[tournamentType];
+            if (!tournament) return;
+            const finalistsCount = tournament.finalistsCount || 6;
+            const rounds = getTournamentRounds(tournamentType);
+            const tableHeader = document.getElementById('tableHeader');
+            let headerHTML = '<tr><th class="w-12">#</th><th>Jugador</th>';
+            if(rounds) {
+                rounds.forEach(round => { headerHTML += `<th class="text-right">${round}</th>`; });
+            }
+            headerHTML += '<th class="text-right">Total</th></tr>';
+            tableHeader.innerHTML = headerHTML;
+            const bestEntries = getBestEntryPerPlayer(allEntries, tournamentType);
+            const playersWithScores = bestEntries.map(client => ({ ...client, totalScore: calculateTotal(client, tournamentType) }));
+            playersWithScores.sort((a, b) => b.totalScore - a.totalScore);
+            const tableBody = document.getElementById('tableBody');
+            if (playersWithScores.length === 0) {
+                const colSpan = (rounds ? rounds.length : 0) + 3;
+                // Mostrar skeleton mientras no hay jugadores
+                let skeletonHTML = '';
+                for (let s = 0; s < 6; s++) {
+                    skeletonHTML += `<tr class="skeleton-row" style="animation-delay:${s*0.07}s">`;
+                    for (let c = 0; c < colSpan; c++) {
+                        skeletonHTML += `<td><div class="skeleton-cell" style="width:${c===1?'70%':'40%'}"></div></td>`;
+                    }
+                    skeletonHTML += '</tr>';
+                }
+                tableBody.innerHTML = skeletonHTML;
+                return;
+            }
+            let bodyHTML = '';
+            playersWithScores.forEach((player, index) => {
+                let rowClass = '';
+                let rankHTML = '';
+                if (index === 0) { rowClass = 'row-gold'; rankHTML = `<div class="flex items-center gap-2 pl-3"><span class="material-symbols-outlined text-secondary-fixed-dim text-sm" style="font-variation-settings:'FILL' 1">military_tech</span><span class="font-headline font-bold text-lg text-secondary-fixed-dim">01</span></div>`; }
+                else if (index === 1) { rowClass = 'row-silver'; rankHTML = `<div class="flex items-center gap-2 pl-3"><span class="material-symbols-outlined text-on-surface-variant text-sm" style="font-variation-settings:'FILL' 1">military_tech</span><span class="font-headline font-bold text-lg">02</span></div>`; }
+                else if (index === 2) { rowClass = 'row-bronze'; rankHTML = `<div class="flex items-center gap-2 pl-3"><span class="material-symbols-outlined text-tertiary-fixed-dim text-sm" style="font-variation-settings:'FILL' 1">military_tech</span><span class="font-headline font-bold text-lg">03</span></div>`; }
+                else if (index < finalistsCount) { rowClass = 'row-finalist'; rankHTML = `<span class="font-headline font-bold text-on-surface-variant pl-6">${String(index+1).padStart(2,'0')}</span>`; }
+                else { rankHTML = `<span class="font-headline font-bold text-on-surface-variant/50 pl-6">${String(index+1).padStart(2,'0')}</span>`; }
+                bodyHTML += `<tr class="${rowClass}" style="animation:rowFadeIn 0.3s ease forwards;animation-delay:${index*0.04}s"><td class="rank">${rankHTML}</td><td class="font-label font-semibold text-sm text-on-surface uppercase tracking-wide">${formatPlayerName(player.nombre, player.apellido)}</td>`;
+                if(rounds) {
+                    rounds.forEach(round => {
+                        const scoreKey = round.toLowerCase().replace(/ /g, '');
+                        bodyHTML += `<td class="score">${formatNumber(player[scoreKey] || 0)}</td>`;
+                    });
+                }
+                bodyHTML += `<td class="score total-score">${formatNumber(player.totalScore)}</td></tr>`;
+            });
+            tableBody.innerHTML = bodyHTML;
+        }
+
+        function renderFinalTable() {
+            const tournamentType = getTournamentType();
+            const finalists = JSON.parse(localStorage.getItem(`finalistas_${tournamentType}`) || '[]');
+            const rounds = getTournamentRounds(tournamentType);
+            const tableHeader = document.getElementById('finalTableHeader');
+            let headerHTML = '<tr><th class="w-16">Lugar</th><th>Finalista</th>';
+            if(rounds) {
+                rounds.forEach(round => { headerHTML += `<th class="text-right">${round}</th>`; });
+            }
+            headerHTML += '<th class="text-right">Total Final</th></tr>';
+            tableHeader.innerHTML = headerHTML;
+            const finalistsWithScores = finalists.map(f => ({ ...f, totalScore: calculateTotal(f, tournamentType) }));
+            finalistsWithScores.sort((a, b) => b.totalScore - a.totalScore);
+            const tableBody = document.getElementById('finalTableBody');
+            let bodyHTML = '';
+            const highlightClasses = ['row-gold', 'row-silver', 'row-bronze'];
+            finalistsWithScores.forEach((player, index) => {
+                const highlightClass = index < 3 ? highlightClasses[index] : '';
+                const emoji = ['🥇', '🥈', '🥉'][index] || `${index + 1}.`;
+                bodyHTML += `<tr class="${highlightClass}"><td class="rank pl-4 text-xl">${emoji}</td><td class="font-label font-bold text-sm text-on-surface uppercase tracking-wide">${formatPlayerName(player.nombre, player.apellido)}</td>`;
+                if(rounds){
+                    rounds.forEach(round => {
+                        const scoreKey = round.toLowerCase().replace(/ /g, '');
+                        bodyHTML += `<td class="score">${formatNumber(player[scoreKey] || 0)}</td>`;
+                    });
+                }
+                bodyHTML += `<td class="score total-score text-xl">${formatNumber(player.totalScore)}</td></tr>`;
+            });
+            tableBody.innerHTML = bodyHTML;
+        }
+
+        function renderWinnersPodium() {
+            const tournamentType = getTournamentType();
+            const finalists = JSON.parse(localStorage.getItem(`finalistas_${tournamentType}`) || '[]');
+            const prizes = JSON.parse(localStorage.getItem('tournamentPrizes') || '{}');
+            const sortedWinners = finalists.map(f => ({ ...f, totalScore: calculateTotal(f, tournamentType) })).sort((a, b) => b.totalScore - a.totalScore);
+            const podiumContainer = document.getElementById('winnersPodium');
+            podiumContainer.innerHTML = '';
+            const prizeConfig = [ { prize: prizes.first || 0, emoji: '🥇' }, { prize: prizes.second || 0, emoji: '🥈' }, { prize: prizes.third || 0, emoji: '🥉' }];
+            for (let i = 0; i < 3; i++) {
+                const winner = sortedWinners[i];
+                if (winner) {
+                    const podiumDiv = document.createElement('div');
+                    podiumDiv.className = `podium-place podium-${i + 1}`;
+                    podiumDiv.innerHTML = `<p class="text-5xl mb-2">${prizeConfig[i].emoji}</p><h3 class="text-2xl font-bold">${formatPlayerName(winner.nombre, winner.apellido)}</h3><p class="text-3xl font-extrabold mt-2">$${formatNumber(prizeConfig[i].prize)}</p>`;
+                    podiumContainer.appendChild(podiumDiv);
+                }
+            }
+        }
+        
+        function renderLimitsInChipCard() {
+            const tournamentType = getTournamentType();
+            const tournament = TOURNAMENTS[tournamentType];
+            const limits = JSON.parse(localStorage.getItem('gameLimits') || '{}');
+            const limitsContent = document.getElementById('chip-card-limits-content');
+            if (!limitsContent || !tournament) return;
+            let min, max;
+            if (tournament.type === 'cards') { min = limits.minBet; max = limits.maxBet; } 
+            else if (tournament.type === 'roulette') { min = limits.minPleno; max = limits.maxPleno; }
+            if (min || max) {
+                const label = tournament.type === 'roulette' ? 'Pleno' : 'Apuestas';
+                limitsContent.innerHTML = `<p class="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.2em] mb-1">${label}</p><div class="flex justify-around items-center w-full"><div class="text-center"><p class="text-[9px] font-label text-on-surface-variant uppercase tracking-widest">MÍN</p><p class="font-headline text-lg font-bold text-green-400">$${formatNumber(min)}</p></div><div class="w-px h-8 bg-outline-variant/30"></div><div class="text-center"><p class="text-[9px] font-label text-on-surface-variant uppercase tracking-widest">MÁX</p><p class="font-headline text-lg font-bold text-red-400">$${formatNumber(max)}</p></div></div>`;
+            } else { limitsContent.innerHTML = ''; }
+        }
+
+        function updateRegistrationCard() {
+            const allEntries = getClients().filter(c => !c.isTableBreak);
+            const uniquePlayers = new Set(allEntries.map(c => c.rut));
+            const displayEl = document.getElementById('totalPlayersDisplay');
+            if(displayEl) displayEl.textContent = uniquePlayers.size;
+        }
+        
+        function updateSummaryCard() {
+            const prizePool = localStorage.getItem('prizePool') || '0';
+            const allEntries = getClients().filter(c => !c.isTableBreak);
+            const uniquePlayers = new Set(allEntries.map(c => c.rut));
+            const summaryCard = document.getElementById('summary-card');
+            summaryCard.innerHTML = `<span class="material-symbols-outlined card-icon text-primary-fixed-dim" style="font-variation-settings:'FILL' 1">payments</span><p class="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.2em] mb-1">RESUMEN</p><div class="mb-1 pb-1 border-b border-outline-variant/30"><p class="text-[9px] font-label text-on-surface-variant uppercase tracking-widest">POZO</p><p class="font-headline text-2xl font-bold text-primary-fixed-dim">$${formatNumber(prizePool)}</p></div><div><p class="text-[9px] font-label text-on-surface-variant uppercase tracking-widest">INSCRITOS</p><p class="font-headline text-2xl font-bold text-on-surface">${uniquePlayers.size}</p></div>`;
+        }
+
+        function getTournamentDateObj() {
+            const dateStr = localStorage.getItem('tournamentDate');
+            if (dateStr) {
+                const [y, m, d] = dateStr.split('-');
+                return { year: parseInt(y), month: parseInt(m) - 1, day: parseInt(d) };
+            }
+            const now = new Date();
+            return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
+        }
+
+        function updateCountdownDisplay() {
+            const endTimeString = localStorage.getItem('registrationEndTime');
+            if (!endTimeString) return;
+            const [hours, minutes] = endTimeString.split(':');
+            const { year, month, day } = getTournamentDateObj();
+            const now = new Date();
+            const endTime = new Date(year, month, day, parseInt(hours), parseInt(minutes), 0);
+            const totalSeconds = Math.floor((endTime.getTime() - now.getTime()) / 1000);
+            if (totalSeconds >= 0) {
+                const mins = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                const timerEl = document.getElementById('countdownTimer');
+                if(timerEl) timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+        }
+        
+        function checkRegistrationStatus() {
+            const registrationCard = document.getElementById('registration-card');
+            const summaryCard = document.getElementById('summary-card');
+            const endTimeDisplay = document.getElementById('endTimeDisplay');
+            const warningMessage = document.getElementById('warningMessage');
+            const endTimeString = localStorage.getItem('registrationEndTime');
+            if (!endTimeString) {
+                registrationCard.classList.remove('hidden');
+                summaryCard.classList.add('hidden');
+                if(endTimeDisplay) endTimeDisplay.textContent = 'Cierre no definido';
+                if(warningMessage) warningMessage.classList.add('hidden');
+                if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+                updateTopCardsLayout();
+                return;
+            }
+            const [hours, minutes] = endTimeString.split(':');
+            const { year, month, day } = getTournamentDateObj();
+            const now = new Date();
+            const endTime = new Date(year, month, day, parseInt(hours), parseInt(minutes), 0);
+            const minutesRemaining = (endTime.getTime() - now.getTime()) / 60000;
+            if (minutesRemaining <= 0) {
+                registrationCard.classList.add('hidden');
+                summaryCard.classList.remove('hidden');
+                updateSummaryCard();
+                if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+            } else {
+                registrationCard.classList.remove('hidden');
+                summaryCard.classList.add('hidden');
+                if(endTimeDisplay) endTimeDisplay.textContent = `Cierre a las ${endTimeString} hrs.`;
+                if(warningMessage) {
+                    if (minutesRemaining <= 20) {
+                        warningMessage.classList.remove('hidden');
+                        if (!countdownInterval) {
+                            updateCountdownDisplay();
+                            countdownInterval = setInterval(updateCountdownDisplay, 1000);
+                        }
+                    } else {
+                        warningMessage.classList.add('hidden');
+                        if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+                    }
+                }
+            }
+            updateTopCardsLayout();
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const clockEl = document.getElementById('clock');
+            if(clockEl) clockEl.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // ═══ SYNC DESDE SHEETS ════════════════════════════════
+        // La pantalla siempre recibe — nunca envía
+        const PANTALLA_GAS_URL = 'https://script.google.com/macros/s/AKfycbzgS7g3_yAEZA_56BtVqJ6-RRt1f_o8wMfdjzGVuLKzXvLH8Z-KiJP4E1SQLoE-edRdJw/exec';
+        let pantallaSyncTS = '';
+        let pantallaIndicador = null;
+
+        function crearIndicadorSync() {
+            var el = document.createElement('div');
+            el.id = 'pantallaSync';
+            el.style.cssText = 'position:fixed;bottom:12px;right:12px;z-index:50;display:flex;align-items:center;' +
+                'gap:6px;background:rgba(13,14,20,0.9);border:1px solid rgba(74,85,104,0.4);' +
+                'padding:6px 12px;border-radius:8px;font-family:Manrope,sans-serif;font-size:11px;color:#6b7280;';
+            el.innerHTML = '<span id="psyncDot" style="width:6px;height:6px;border-radius:50%;background:#4a5568;flex-shrink:0"></span>' +
+                '<span id="psyncLabel">Sin sync</span>';
+            document.body.appendChild(el);
+            pantallaIndicador = el;
+        }
+
+        function setPantallaIndicador(state, label) {
+            var dot = document.getElementById('psyncDot');
+            var lbl = document.getElementById('psyncLabel');
+            if (!dot || !lbl) return;
+            var colors = {ok:'#22c55e', pull:'#00daf3', err:'#ef4444'};
+            dot.style.background = colors[state] || '#4a5568';
+            if (state === 'pull') dot.style.animation = 'syncPulse 0.8s infinite';
+            else dot.style.animation = '';
+            lbl.textContent = label;
+            lbl.style.color = colors[state] || '#6b7280';
+        }
+
+        async function pantallaDoPull() {
+            try {
+                setPantallaIndicador('pull', 'Recibiendo...');
+                var url = PANTALLA_GAS_URL + '?action=syncPull&nocache=' + Date.now();
+                var resp = await fetch(url, {redirect:'follow', cache:'no-cache'});
+                var result = await resp.json();
+                if (result.status !== 'success' || !result.data || result.data.empty) {
+                    setPantallaIndicador('ok', 'En vivo');
+                    return;
+                }
+                var d = result.data;
+                if (d.timestamp === pantallaSyncTS) {
+                    setPantallaIndicador('ok', d.timestamp.slice(11,16));
+                    return;
+                }
+                // Hay datos nuevos — aplicar al localStorage y refrescar UI
+                pantallaSyncTS = d.timestamp;
+                var s = d.state;
+                if (!s || !s.tournamentType) return;
+                var tid = s.tournamentType;
+                var raw = Storage.prototype.setItem;
+                raw.call(localStorage, 'selectedTournament',   tid);
+                raw.call(localStorage, 'tournamentDate',       s.date||'');
+                raw.call(localStorage, 'tournamentDirector',   s.director||'');
+                raw.call(localStorage, 'registrationEndTime',  s.endTime||'');
+                raw.call(localStorage, 'prizePool',            s.prizePool||'0');
+                raw.call(localStorage, 'tournamentPrizes',     JSON.stringify(s.prizes||{}));
+                raw.call(localStorage, 'gameLimits',           JSON.stringify(s.limits||{}));
+                raw.call(localStorage, 'rouletteBallCount',    s.rouletteBallCount||'3');
+                if (s.chips)     raw.call(localStorage, 'tournament_chips',   JSON.stringify(s.chips));
+                if (s.clients)   raw.call(localStorage, 'clientes_'+tid,      JSON.stringify(s.clients));
+                if (s.finalists) raw.call(localStorage, 'finalistas_'+tid,    JSON.stringify(s.finalists));
+                // Refrescar toda la pantalla
+                updateHeaderInfo();
+                updateActiveView();
+                clearInterval(prizeInterval);
+                prizeViewIndex = 0;
+                updatePrizeCard();
+                prizeInterval = setInterval(updatePrizeCard, 4000);
+                setPantallaIndicador('ok', '↓ ' + d.timestamp.slice(11,16));
+            } catch(e) {
+                setPantallaIndicador('err', 'Sin red');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const themeCommand = JSON.parse(localStorage.getItem('theme_command') || '{}');
+                document.body.classList.toggle('dark', themeCommand.theme === 'dark');
+            } catch (e) {}
+            updateActiveView();
+            updateClock();
+            updatePrizeCard();
+            prizeInterval = setInterval(updatePrizeCard, 4000);
+            setInterval(updateClock, 1000);
+            setInterval(checkRegistrationStatus, 10000);
+            setInterval(updateRegistrationCard, 5000);
+
+            // Iniciar sync desde Sheets
+            crearIndicadorSync();
+            pantallaDoPull();
+            setInterval(pantallaDoPull, 4000);
+
+            // Ocultar loader al terminar la carga inicial
+            setTimeout(() => {
+                const loader = document.getElementById('page-loader');
+                if (loader) loader.classList.add('hidden');
+                document.querySelectorAll('.card').forEach((card, i) => {
+                    card.style.animationDelay = `${i * 0.08}s`;
+                    card.classList.add('card-enter');
+                });
+            }, 900);
+
+            window.addEventListener('storage', (event) => {
+                if (event.key === 'fullscreen_command') {
+                    goFullscreen();
+                } else if (event.key === 'theme_command') {
+                    try { document.body.classList.toggle('dark', JSON.parse(event.newValue).theme === 'dark'); } catch(e) {}
+                } else {
+                     updateHeaderInfo();
+                     updateActiveView();
+                     if (['tournamentPrizes', 'prizePool'].includes(event.key)) {
+                        clearInterval(prizeInterval);
+                        prizeViewIndex = 0;
+                        updatePrizeCard();
+                        prizeInterval = setInterval(updatePrizeCard, 4000);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+
