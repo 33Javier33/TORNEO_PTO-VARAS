@@ -452,13 +452,15 @@
                     <p class="text-xs font-label text-[#6b7280]">Selecciona tu rol para conectarte al torneo</p>
                 </div>
             </div>
-            <div class="space-y-3">
-                <button onclick="selectRole('supervisor')"
+
+            <!-- Vista: selección de rol -->
+            <div id="roleSelectorView" class="space-y-3">
+                <button onclick="iniciarFlujoSupervisor()"
                     class="w-full flex items-center gap-4 p-4 rounded-xl border border-[#e9c400]/30 hover:border-[#e9c400] hover:bg-[#e9c400]/08 transition-all text-left">
                     <span class="material-symbols-outlined text-[#e9c400] text-3xl flex-shrink-0" style="font-variation-settings:'FILL' 1">admin_panel_settings</span>
                     <div>
                         <p class="font-headline font-bold text-sm text-[#e9c400]">👑 Supervisor</p>
-                        <p class="text-xs font-label text-[#6b7280] mt-0.5">Acceso total — config, participantes, puntajes</p>
+                        <p class="text-xs font-label text-[#6b7280] mt-0.5">Acceso total — requiere clave de sesión</p>
                     </div>
                 </button>
                 <button onclick="selectRole('operador')"
@@ -477,8 +479,59 @@
                         <p class="text-xs font-label text-[#6b7280] mt-0.5">Solo visualiza — no puede editar nada</p>
                     </div>
                 </button>
+                <p class="text-[10px] font-label text-[#4a5568] text-center pt-1">Sincronización automática cada ~4 segundos vía Google Sheets</p>
             </div>
-            <p class="text-[10px] font-label text-[#4a5568] text-center mt-4">Sincronización automática cada ~4 segundos vía Google Sheets</p>
+
+            <!-- Vista: ingreso de clave Supervisor -->
+            <div id="supervisorKeyView" class="hidden space-y-4">
+                <div id="sessionInfoBox" class="hidden p-3 rounded-lg bg-[#e9c400]/10 border border-[#e9c400]/30 text-xs font-label text-[#e9c400]"></div>
+                <div>
+                    <label class="block text-xs font-label font-bold text-[#d1d5db] mb-1.5">Tu nombre (para identificarte)</label>
+                    <input type="text" id="supervisorNombre" placeholder="Ej: Juan Pérez" class="w-full p-2.5 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-label font-bold text-[#d1d5db] mb-1.5">Clave de sesión</label>
+                    <div class="password-container">
+                        <input type="password" id="supervisorKey" placeholder="Ingresa o crea una clave" class="w-full p-2.5 rounded-lg text-sm pr-10">
+                        <span class="toggle-password material-symbols-outlined text-sm" onclick="togglePasswordVis('supervisorKey',this)">visibility</span>
+                    </div>
+                    <p id="supervisorKeyHint" class="text-[10px] text-[#6b7280] mt-1 font-label">Si no hay sesión activa se creará una nueva. Si hay sesión activa debes ingresar esa clave.</p>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button onclick="mostrarVistaRoles()" class="flex-1 px-4 py-2.5 rounded-lg border border-[#4a5568] text-[#bac9cc] text-sm font-label font-bold hover:border-[#6b7280] transition-all">
+                        ← Volver
+                    </button>
+                    <button onclick="procesarClaveSupervisor()" id="supervisorKeyBtn" class="flex-1 px-4 py-2.5 rounded-lg bg-[#e9c400] text-[#3a3000] text-sm font-label font-bold hover:brightness-110 transition-all">
+                        Ingresar como Supervisor
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vista: Supervisor activo — mostrar info de sesión -->
+            <div id="supervisorActiveView" class="hidden space-y-3">
+                <div class="p-4 rounded-xl bg-[#e9c400]/10 border border-[#e9c400]/40 text-center">
+                    <p class="text-[#e9c400] font-headline font-bold text-sm">👑 Sesión de Supervisor Activa</p>
+                    <p id="supervisorActiveOwner" class="text-[#bac9cc] text-xs font-label mt-1"></p>
+                    <p id="supervisorActiveStart" class="text-[#4a5568] text-[10px] font-label mt-0.5"></p>
+                </div>
+
+                <!-- Botón candado -->
+                <div id="lockBox" class="p-3 rounded-xl border border-[#4a5568]/40 text-center">
+                    <p class="text-xs font-label text-[#bac9cc] mb-2">Control del torneo</p>
+                    <button id="lockBtn" onclick="toggleTournamentLock()"
+                        class="w-full px-4 py-2.5 rounded-lg text-sm font-label font-bold transition-all">
+                    </button>
+                    <p id="lockDesc" class="text-[10px] text-[#4a5568] mt-2 font-label"></p>
+                </div>
+
+                <button onclick="cerrarSesionSupervisor()" class="w-full px-4 py-2.5 rounded-lg border border-red-500/40 text-red-400 text-sm font-label font-bold hover:bg-red-500/10 transition-all">
+                    🔓 Cerrar sesión y liberar todo
+                </button>
+                <button onclick="document.getElementById('roleModal').style.display='none'" class="w-full px-4 py-2.5 rounded-lg bg-[#e9c400] text-[#3a3000] text-sm font-label font-bold hover:brightness-110 transition-all">
+                    Continuar
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -500,9 +553,9 @@
         </div>
     </div>
     <div id="readonlyBanner" class="w-full bg-[#e9c400]/10 border-b border-[#e9c400]/30 px-4 py-2 flex items-center justify-between">
-        <div class="flex items-center gap-2 text-[#e9c400] text-xs font-label font-bold">
-            <span class="material-symbols-outlined text-sm">info</span>
-            <span id="readonlyBannerLabel">Modo activo</span>
+        <div class="flex items-center gap-2 text-xs font-label font-bold">
+            <span id="bannerIcon" class="material-symbols-outlined text-sm text-[#e9c400]">info</span>
+            <span id="readonlyBannerLabel" class="text-[#e9c400]">Modo activo</span>
             <span id="readonlyTimestamp" class="text-[#e9c400]/60 font-normal ml-2"></span>
         </div>
         <button onclick="document.getElementById('roleModal').style.display='flex'" class="text-[10px] font-label font-bold text-[#e9c400] border border-[#e9c400]/40 px-2 py-1 rounded hover:bg-[#e9c400]/10 transition-all">
@@ -1942,6 +1995,357 @@
             schedulePush({type:'config',description:'Configuración actualizada',by:'supervisor',at:Date.now()});
     }
 
+    // === SESIÓN DE SUPERVISOR ===
+
+    var SESSION_KEY   = sessionStorage.getItem('supervisorSessionKey') || '';
+    var SESSION_OWNER = sessionStorage.getItem('supervisorOwner') || '';
+    var TOURNAMENT_LOCKED = false; // estado local del candado
+
+    // Hash simple — mismo algoritmo que en el GAS
+    function simpleHash(str) {
+        var hash = 0;
+        for (var i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash).toString(36).toUpperCase();
+    }
+
+    function togglePasswordVis(inputId, iconEl) {
+        var inp = document.getElementById(inputId);
+        if (!inp) return;
+        if (inp.type === 'password') { inp.type = 'text'; iconEl.textContent = 'visibility_off'; }
+        else { inp.type = 'password'; iconEl.textContent = 'visibility'; }
+    }
+
+    // ── Navegación dentro del modal ────────────────────────────
+    function mostrarVistaRoles() {
+        document.getElementById('roleSelectorView').classList.remove('hidden');
+        document.getElementById('supervisorKeyView').classList.add('hidden');
+        document.getElementById('supervisorActiveView').classList.add('hidden');
+    }
+
+    function mostrarVistaSupervisorActivo(owner, start, locked) {
+        document.getElementById('roleSelectorView').classList.add('hidden');
+        document.getElementById('supervisorKeyView').classList.add('hidden');
+        document.getElementById('supervisorActiveView').classList.remove('hidden');
+        var ownerEl = document.getElementById('supervisorActiveOwner');
+        var startEl = document.getElementById('supervisorActiveStart');
+        if (ownerEl) ownerEl.textContent = '👤 ' + owner;
+        if (startEl) startEl.textContent = 'Sesión iniciada: ' + (start||'').slice(11,16);
+        actualizarBtnCandado(locked);
+    }
+
+    function actualizarBtnCandado(locked) {
+        TOURNAMENT_LOCKED = locked;
+        var btn  = document.getElementById('lockBtn');
+        var desc = document.getElementById('lockDesc');
+        var box  = document.getElementById('lockBox');
+        if (!btn) return;
+        if (locked) {
+            btn.textContent  = '🔒 Torneo BLOQUEADO — Desbloquear';
+            btn.style.cssText = 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);color:#ef4444;width:100%;padding:10px;border-radius:8px;';
+            if (desc) desc.textContent = 'Nadie puede editar nada. Solo tú puedes desbloquear.';
+            if (box)  box.style.borderColor = 'rgba(239,68,68,0.4)';
+            // Actualizar banner
+            actualizarBannerBloqueo(true, SESSION_OWNER);
+        } else {
+            btn.textContent  = '🔓 Torneo ABIERTO — Bloquear';
+            btn.style.cssText = 'background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.4);color:#22c55e;width:100%;padding:10px;border-radius:8px;';
+            if (desc) desc.textContent = 'Operadores pueden agregar y editar participantes.';
+            if (box)  box.style.borderColor = 'rgba(74,85,104,0.4)';
+            actualizarBannerBloqueo(false, null);
+        }
+    }
+
+    function actualizarBannerBloqueo(locked, owner) {
+        var banner = document.getElementById('readonlyBanner');
+        var label  = document.getElementById('readonlyBannerLabel');
+        var icon   = document.getElementById('bannerIcon');
+        if (!banner || !label) return;
+        if (locked) {
+            banner.classList.add('show');
+            banner.style.background = 'rgba(239,68,68,0.1)';
+            banner.style.borderColor = 'rgba(239,68,68,0.3)';
+            if (icon)  { icon.textContent = 'lock'; icon.style.color = '#ef4444'; }
+            if (label) { label.style.color = '#ef4444'; label.textContent = '🔒 TORNEO BLOQUEADO' + (owner ? ' por ' + owner : ''); }
+        } else {
+            banner.style.background = '';
+            banner.style.borderColor = '';
+            if (icon)  { icon.textContent = 'info'; icon.style.color = '#e9c400'; }
+            if (label) { label.style.color = '#e9c400'; }
+        }
+    }
+
+    // ── Flujo al elegir Supervisor ─────────────────────────────
+    async function iniciarFlujoSupervisor() {
+        document.getElementById('roleSelectorView').classList.add('hidden');
+        document.getElementById('supervisorKeyView').classList.remove('hidden');
+        document.getElementById('supervisorActiveView').classList.add('hidden');
+        // Limpiar estado anterior
+        var infoBox = document.getElementById('sessionInfoBox');
+        var hint    = document.getElementById('supervisorKeyHint');
+        infoBox.classList.add('hidden');
+        infoBox.style.cssText = '';
+        // Consultar sesión activa
+        try {
+            var resp = await fetch(SCRIPT_URL + '?action=getSession&nocache=' + Date.now(), {redirect:'follow'});
+            var result = await resp.json();
+            var sess = result.data;
+            if (sess && sess.keyHash) {
+                infoBox.classList.remove('hidden');
+                infoBox.innerHTML = '🔒 Sesión activa de <strong>' + sess.owner + '</strong> desde ' + (sess.start||'').slice(11,16) +
+                    (sess.locked ? '<br>⚠️ Torneo bloqueado.' : '');
+                if (hint) hint.textContent = 'Ingresa la clave de ese supervisor o el código maestro.';
+            } else {
+                if (hint) hint.textContent = 'No hay sesión activa. Crea una clave para este torneo.';
+            }
+        } catch(e) {
+            if (hint) hint.textContent = 'Sin conexión — puedes intentar igual.';
+        }
+    }
+
+    async function procesarClaveSupervisor() {
+        var nombre = (document.getElementById('supervisorNombre').value||'').trim();
+        var clave  = (document.getElementById('supervisorKey').value||'').trim();
+        if (!nombre) { showToast('Ingresa tu nombre'); return; }
+        if (!clave || clave.length < 4) { showToast('La clave debe tener al menos 4 caracteres'); return; }
+
+        var btn = document.getElementById('supervisorKeyBtn');
+        btn.disabled = true; btn.textContent = 'Verificando...';
+        var infoBox = document.getElementById('sessionInfoBox');
+
+        try {
+            var params = new URLSearchParams();
+            params.append('action', 'openSession');
+            params.append('data', JSON.stringify({key: clave, owner: nombre}));
+            var resp = await fetch(SCRIPT_URL, {
+                method:'POST', redirect:'follow',
+                headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                body: params.toString()
+            });
+            var result = await resp.json();
+            if (result.status === 'success') {
+                SESSION_KEY   = clave;
+                SESSION_OWNER = nombre;
+                sessionStorage.setItem('supervisorSessionKey', clave);
+                sessionStorage.setItem('supervisorOwner', nombre);
+                var locked = result.data.locked || false;
+                mostrarVistaSupervisorActivo(result.data.owner||nombre, result.data.start||'', locked);
+                selectRole('supervisor');
+            } else {
+                infoBox.classList.remove('hidden');
+                infoBox.style.background = 'rgba(239,68,68,0.1)';
+                infoBox.style.borderColor = '#ef4444';
+                infoBox.style.color = '#ef4444';
+                infoBox.textContent = result.message || 'Error al abrir sesión';
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message);
+        } finally {
+            btn.disabled = false; btn.textContent = 'Ingresar como Supervisor';
+        }
+    }
+
+    // ── Toggle candado ─────────────────────────────────────────
+    async function toggleTournamentLock() {
+        if (!SESSION_KEY) { showToast('Sin sesión activa'); return; }
+        var newLocked = !TOURNAMENT_LOCKED;
+        var params = new URLSearchParams();
+        params.append('action', 'lockTournament');
+        params.append('data', JSON.stringify({key: SESSION_KEY, locked: newLocked}));
+        try {
+            var resp = await fetch(SCRIPT_URL, {
+                method:'POST', redirect:'follow',
+                headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                body: params.toString()
+            });
+            var result = await resp.json();
+            if (result.status === 'success') {
+                actualizarBtnCandado(newLocked);
+                // Aplicar bloqueo local inmediatamente
+                aplicarBloqueoLocal(newLocked);
+                showToast(newLocked ? '🔒 Torneo bloqueado' : '🔓 Torneo desbloqueado', true);
+            } else {
+                showToast(result.message || 'Error al cambiar bloqueo');
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message);
+        }
+    }
+
+    // Aplicar/quitar bloqueo en la UI local
+    function aplicarBloqueoLocal(locked) {
+        TOURNAMENT_LOCKED = locked;
+        var body = document.body;
+        if (locked && SYNC_ROLE !== 'supervisor') {
+            body.classList.add('readonly-mode');
+        } else if (!locked) {
+            // Restaurar según rol
+            applyRoleRestrictions();
+        }
+    }
+
+    // ── Cerrar sesión ──────────────────────────────────────────
+    async function cerrarSesionSupervisor() {
+        if (!confirm('¿Cerrar sesión? Esto libera el torneo para otros Supervisores.')) return;
+        var clave = SESSION_KEY;
+        if (!clave) return;
+        try {
+            var params = new URLSearchParams();
+            params.append('action', 'closeSession');
+            params.append('data', JSON.stringify({key: clave}));
+            var resp = await fetch(SCRIPT_URL, {
+                method:'POST', redirect:'follow',
+                headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                body: params.toString()
+            });
+            var result = await resp.json();
+            if (result.status === 'success') {
+                SESSION_KEY = ''; SESSION_OWNER = '';
+                sessionStorage.removeItem('supervisorSessionKey');
+                sessionStorage.removeItem('supervisorOwner');
+                TOURNAMENT_LOCKED = false;
+                actualizarBannerBloqueo(false, null);
+                applyRoleRestrictions();
+                document.getElementById('roleModal').style.display = 'none';
+                mostrarVistaRoles();
+                showToast('🔓 Sesión cerrada. Torneo liberado.', true);
+            } else {
+                showToast(result.message || 'Error');
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message);
+        }
+    }
+
+    // ── Integrar bloqueo en el pull ────────────────────────────
+    // Cuando llega info de sesión vía syncPull, aplicar bloqueo si corresponde
+    function procesarSesionEnPull(session) {
+        if (!session) return;
+        var wasLocked = TOURNAMENT_LOCKED;
+        TOURNAMENT_LOCKED = session.locked;
+
+        if (session.locked) {
+            // Torneo bloqueado — ¿soy el dueño?
+            var myHash     = simpleHash(SESSION_KEY || '');
+            var masterHash = simpleHash('CarlosPN2024');
+            var soyDueno   = session.keyHash && (myHash === session.keyHash || masterHash === session.keyHash);
+            if (!soyDueno) {
+                // Bloquear todo
+                document.body.classList.add('readonly-mode');
+                actualizarBannerBloqueo(true, session.owner);
+            } else {
+                actualizarBtnCandado(true);
+            }
+        } else {
+            if (wasLocked) {
+                // Se desbloqueó — restaurar
+                document.body.classList.remove('readonly-mode');
+                applyRoleRestrictions();
+                actualizarBannerBloqueo(false, null);
+            }
+        }
+
+        // Actualizar banner con info del dueño
+        var tsEl = document.getElementById('readonlyTimestamp');
+        if (tsEl && session.owner && SYNC_ROLE !== 'supervisor') {
+            tsEl.textContent = '— sesión de ' + session.owner;
+        }
+    }
+
+    // Incluir sessionKey en cada push (supervisor)
+    // y respetar bloqueo (operador/lectura no pueden pushear si bloqueado)
+    var _origSchedulePushSesion = schedulePush;
+    function schedulePush(actionInfo) {
+        // Si torneo bloqueado y no soy el supervisor dueño, no enviar
+        if (TOURNAMENT_LOCKED) {
+            var myHash2    = simpleHash(SESSION_KEY || '');
+            var masterHash2 = simpleHash('CarlosPN2024');
+            // Verificar comparando con la sesión conocida localmente
+            // Solo el supervisor con clave puede pushear cuando está bloqueado
+            if (SYNC_ROLE !== 'supervisor' || !SESSION_KEY) {
+                syncLog('PUSH bloqueado — torneo cerrado','#ef4444');
+                return;
+            }
+        }
+        if (SYNC_ROLE !== 'supervisor' && SYNC_ROLE !== 'operador') return;
+        clearTimeout(syncPushTimer);
+        syncPushTimer = setTimeout(async function() {
+            syncPushTimer = null;
+            try {
+                setSyncIndicator('push','Guardando...');
+                var payload = buildPayload(actionInfo);
+                if (SYNC_ROLE === 'supervisor' && SESSION_KEY) {
+                    payload.sessionKey = SESSION_KEY;
+                }
+                var json = JSON.stringify(payload);
+                syncLog('PUSH '+json.length+'b','#e9c400');
+                var params = new URLSearchParams();
+                params.append('action','syncPush');
+                params.append('data', json);
+                var resp = await fetch(SCRIPT_URL, {
+                    method:'POST', redirect:'follow', cache:'no-cache',
+                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                    body: params.toString()
+                });
+                var text = await resp.text();
+                syncLog('resp: '+text.substring(0,80),'#bac9cc');
+                var result = JSON.parse(text);
+                if (result.status==='success' && result.data && result.data.timestamp) {
+                    lastPushTime = Date.now();
+                    lastSyncTimestamp = result.data.timestamp;
+                    setSyncIndicator('ok','✓ '+result.data.timestamp.slice(11,16));
+                } else {
+                    setSyncIndicator('err', result.message||'Error');
+                    syncLog('ERR: '+(result.message||'?'),'#ef4444');
+                }
+            } catch(err) {
+                setSyncIndicator('err','Sin red');
+                syncLog('PUSH ERR: '+err.message,'#ef4444');
+            }
+        }, 800);
+    }
+
+    // Override doPull para procesar info de sesión
+    var _origDoPullBase = doPull;
+    async function doPull() {
+        if (syncPushTimer !== null) return;
+        if (lastPushTime > 0 && (Date.now() - lastPushTime) < 3500) return;
+        try {
+            var url = SCRIPT_URL + '?action=syncPull&nocache=' + Date.now();
+            var resp = await fetch(url, {redirect:'follow', cache:'no-cache'});
+            var text = await resp.text();
+            var result = JSON.parse(text);
+            if (result.status !== 'success' || !result.data) return;
+            var d = result.data;
+            // Procesar estado de sesión/bloqueo siempre
+            if (d.session) procesarSesionEnPull(d.session);
+            if (d.empty) {
+                if (SYNC_ROLE === 'lectura') setSyncIndicator('pull','Esperando...');
+                return;
+            }
+            if (d.timestamp === lastSyncTimestamp) {
+                setSyncIndicator('ok', d.timestamp.slice(11,16)); return;
+            }
+            var s = d.state;
+            if (!s) return;
+            if (s.pushedAt && lastPushTime > 0 && Number(s.pushedAt) < lastPushTime) {
+                lastSyncTimestamp = d.timestamp; return;
+            }
+            lastSyncTimestamp = d.timestamp;
+            applyRemoteState(s);
+            setSyncIndicator('ok','↓ '+d.timestamp.slice(11,16));
+            syncLog('PULL: '+d.timestamp.slice(11,16)+' de '+(s.pushedBy||'?'),'#22c55e');
+            if (d.lastAction && d.timestamp !== lastNotifiedTimestamp) {
+                lastNotifiedTimestamp = d.timestamp;
+                addSyncNotification(d.lastAction);
+            }
+        } catch(err) {
+            setSyncIndicator('err','Sin conexión');
+        }
+    }
+
     // === MENÚ HAMBURGUESA ===
     function toggleMobileMenu() {
         const menu = document.getElementById('mobileMenu');
@@ -1982,5 +2386,3 @@
     </script>
 </body>
 </html>
-
-
