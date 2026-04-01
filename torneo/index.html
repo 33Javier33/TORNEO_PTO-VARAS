@@ -564,6 +564,7 @@
             tableBody.innerHTML = bodyHTML;
         }
 
+        // CORRECCIÓN: Renderizado de Mesa Final con colores dark integrados
         function renderFinalTable() {
             const tournamentType = getTournamentType();
             const finalists = JSON.parse(localStorage.getItem(`finalistas_${tournamentType}`) || '[]');
@@ -579,11 +580,15 @@
             finalistsWithScores.sort((a, b) => b.totalScore - a.totalScore);
             const tableBody = document.getElementById('finalTableBody');
             let bodyHTML = '';
-            const highlightClasses = ['row-gold', 'row-silver', 'row-bronze'];
+            
             finalistsWithScores.forEach((player, index) => {
-                const highlightClass = index < 3 ? highlightClasses[index] : '';
-                const emoji = ['🥇', '🥈', '🥉'][index] || `${index + 1}.`;
-                bodyHTML += `<tr class="${highlightClass}"><td class="rank pl-4 text-xl">${emoji}</td><td class="font-label font-bold text-sm text-on-surface uppercase tracking-wide">${formatPlayerName(player.nombre, player.apellido)}</td>`;
+                // CORRECCIÓN: Colores oscuros obligatorios para evitar fondos claros
+                const highlightClass = index === 0 ? 'row-gold' : index === 1 ? 'row-silver' : index === 2 ? 'row-bronze' : (index % 2 === 0 ? 'bg-surface-container-high' : 'bg-surface-container');
+                const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : (index + 1) + ".";
+                
+                bodyHTML += `<tr class="${highlightClass}">
+                    <td class="rank pl-4 text-xl">${emoji}</td>
+                    <td class="font-label font-bold text-sm text-on-surface uppercase tracking-wide">${formatPlayerName(player.nombre, player.apellido)}</td>`;
                 if(rounds){
                     rounds.forEach(round => {
                         const scoreKey = round.toLowerCase().replace(/ /g, '');
@@ -725,7 +730,6 @@
         }
 
         // ═══ SYNC DESDE SHEETS ════════════════════════════════
-        // La pantalla siempre recibe — nunca envía
         const PANTALLA_GAS_URL = 'https://script.google.com/macros/s/AKfycbzgS7g3_yAEZA_56BtVqJ6-RRt1f_o8wMfdjzGVuLKzXvLH8Z-KiJP4E1SQLoE-edRdJw/exec';
         let pantallaSyncTS = '';
         let pantallaIndicador = null;
@@ -769,7 +773,6 @@
                     setPantallaIndicador('ok', d.timestamp.slice(11,16));
                     return;
                 }
-                // Hay datos nuevos — aplicar al localStorage y refrescar UI
                 pantallaSyncTS = d.timestamp;
                 var s = d.state;
                 if (!s || !s.tournamentType) return;
@@ -786,7 +789,12 @@
                 if (s.chips)     raw.call(localStorage, 'tournament_chips',   JSON.stringify(s.chips));
                 if (s.clients)   raw.call(localStorage, 'clientes_'+tid,      JSON.stringify(s.clients));
                 if (s.finalists) raw.call(localStorage, 'finalistas_'+tid,    JSON.stringify(s.finalists));
-                // Refrescar toda la pantalla
+                
+                // CORRECCIÓN: Aplicar estado de vista remoto al localStorage público
+                if(s.tournamentViewState){
+                    raw.call(localStorage, "tournament_view_state", s.tournamentViewState);
+                }
+
                 updateHeaderInfo();
                 updateActiveView();
                 clearInterval(prizeInterval);
@@ -812,12 +820,10 @@
             setInterval(checkRegistrationStatus, 10000);
             setInterval(updateRegistrationCard, 5000);
 
-            // Iniciar sync desde Sheets
             crearIndicadorSync();
             pantallaDoPull();
             setInterval(pantallaDoPull, 4000);
 
-            // Ocultar loader al terminar la carga inicial
             setTimeout(() => {
                 const loader = document.getElementById('page-loader');
                 if (loader) loader.classList.add('hidden');
