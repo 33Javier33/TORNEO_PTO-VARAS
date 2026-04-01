@@ -197,7 +197,7 @@
         <div class="md:hidden mb-3">
             <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280] text-base">search</span>
-                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Buscar por nombre, apellido o RUT..."
+                <input type="text" id="searchInputMobile" onkeyup="syncSearch(this)" placeholder="Buscar por nombre, apellido o RUT..."
                     class="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm">
             </div>
         </div>
@@ -277,7 +277,7 @@
                 <div><label class="block text-xs font-label text-on-surface-variant uppercase tracking-widest mb-1">RUT</label><p id="editRut" class="w-full p-2 rounded-lg text-sm bg-surface-container-low text-on-surface-variant border border-outline-variant/30"></p></div>
             </div>
             <div class="mt-6 flex justify-end">
-                <button onclick="saveClientChanges()" class="px-6 py-2 bg-primary-fixed-dim text-on-primary font-headline font-bold rounded-lg text-sm hover:brightness-110 transition-all active:scale-95">Guardar Cambios</button>
+                <button id="saveChangesBtn" onclick="saveClientChanges()" class="px-6 py-2 bg-primary-fixed-dim text-on-primary font-headline font-bold rounded-lg text-sm hover:brightness-110 transition-all active:scale-95">Guardar Cambios</button>
             </div>
         </div>
     </div>
@@ -381,14 +381,34 @@
     }
 
     /**
-     * Filtra la tabla basándose en el campo de búsqueda.
+     * Filtra la tabla — mínimo 2 caracteres, busca nombre/apellido/RUT.
      */
     function filterTable() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        let raw = '';
+        ['searchInput','searchInputMobile'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.value.trim()) raw = el.value.trim();
+        });
+        const term = raw.toLowerCase();
         const rows = document.querySelectorAll('#clientTable tbody tr');
+        if (term.length < 2) {
+            rows.forEach(r => r.style.display = '');
+            return;
+        }
+        const isRut = /^[\d.\-kK]+$/.test(raw);
         rows.forEach(row => {
-            const rowText = row.textContent.toLowerCase();
-            row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+            const cells = row.querySelectorAll('td');
+            if (!cells.length) { row.style.display = ''; return; }
+            let match = false;
+            if (isRut) {
+                const rut = cells[2] ? cells[2].textContent.replace(/[.\-]/g,'').toLowerCase() : '';
+                match = rut.includes(term.replace(/[.\-]/g,''));
+            } else {
+                const n = cells[0] ? cells[0].textContent.toLowerCase() : '';
+                const a = cells[1] ? cells[1].textContent.toLowerCase() : '';
+                match = n.includes(term) || a.includes(term) || (n+' '+a).includes(term);
+            }
+            row.style.display = match ? '' : 'none';
         });
     }
 
@@ -462,29 +482,44 @@
         const originalRut = document.getElementById('originalRut').value;
         const nombre = document.getElementById('editNombre').value.trim();
         const apellido = document.getElementById('editApellido').value.trim();
-
         if (!nombre || !apellido) return showToast("Todos los campos son obligatorios.");
-        
+
+        const btn = document.getElementById('saveChangesBtn');
+        setButtonLoading(btn, true);
         const result = await fetchFromSheet('updateClient', { rut: originalRut, nombre, apellido });
+        setButtonLoading(btn, false);
         if (result) {
-            const clientIndex = clientsCache.findIndex(c => c.rut === originalRut);
-            if (clientIndex > -1) {
-                clientsCache[clientIndex] = { ...clientsCache[clientIndex], nombre, apellido };
-            }
-            sortTable(currentSortKey); // Re-ordena y renderiza
+            const idx = clientsCache.findIndex(c => c.rut === originalRut);
+            if (idx > -1) clientsCache[idx] = { ...clientsCache[idx], nombre, apellido };
+            sortTable(currentSortKey);
             closeModal('editClientModal');
-            showToast("Cliente actualizado con éxito.");
+            showToast("✅ Cliente actualizado.");
+        } else {
+            showToast("Error al actualizar. Intenta de nuevo.");
         }
     }
-    
+
     async function deleteClient(rut) {
+        const btn = document.getElementById('confirmDeleteButton');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Eliminando...';
+            btn.style.opacity = '0.7';
+        }
         const result = await fetchFromSheet('deleteClient', { rut });
-        if (result) {
-            clientsCache = clientsCache.filter(c => c.rut !== rut);
-            renderClients(); // No es necesario re-ordenar, solo re-renderizar
-            showToast("Cliente eliminado.");
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Eliminar';
+            btn.style.opacity = '';
         }
         closeModal('deleteConfirmationModal');
+        if (result) {
+            clientsCache = clientsCache.filter(c => c.rut !== rut);
+            renderClients();
+            showToast("🗑️ Cliente eliminado.");
+        } else {
+            showToast("Error al eliminar. Intenta de nuevo.");
+        }
     }
     
     // --- 4. IMPORTAR / EXPORTAR ---
@@ -633,20 +668,23 @@
 
     async function loadInitialData() {
         showTableSkeleton();
-        const data = await fetchFromSheet('getClients');
-        // Ocultar loader al tener respuesta
         const loader = document.getElementById('page-loader');
+        // Ocultar loader máximo en 4s pase lo que pase
+        const t = setTimeout(() => { if (loader) loader.classList.add('hidden'); }, 4000);
+        const data = await fetchFromSheet('getClients');
+        clearTimeout(t);
         if (loader) loader.classList.add('hidden');
         if (data) {
             clientsCache = data;
             sortTable(currentSortKey);
             updateClientCountBadge();
+        } else {
+            const tb = document.querySelector('#clientTable tbody');
+            if (tb) tb.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-on-surface-variant font-label text-sm">Sin conexión — reintenta más tarde.</td></tr>';
         }
     }
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        loadInitialData();
-    });
+
+    document.addEventListener('DOMContentLoaded', () => { loadInitialData(); });
 
     // === MENÚ HAMBURGUESA ===
     function toggleMobileMenu() {
@@ -675,8 +713,9 @@
     }
 
     function syncSearch(input) {
-        const mainInput = document.getElementById('searchInput');
-        if (mainInput) { mainInput.value = input.value; filterTable(); }
+        const main = document.getElementById('searchInput');
+        if (main) main.value = input.value;
+        filterTable();
     }
 
     function updateClientCountBadge() {
@@ -686,6 +725,75 @@
             badge.classList.remove('hidden');
         }
     }
+
+    // === FAB FLOTANTE ===
+    let fabOpen = false;
+    function toggleFab() {
+        fabOpen = !fabOpen;
+        document.getElementById('fabMenu').classList.toggle('hidden', !fabOpen);
+        document.getElementById('fabIcon').textContent = fabOpen ? 'close' : 'menu';
+    }
+    document.addEventListener('click', e => {
+        if (fabOpen && !e.target.closest('#fabMenu') && !e.target.closest('#fabBtn')) {
+            fabOpen = false;
+            document.getElementById('fabMenu').classList.add('hidden');
+            document.getElementById('fabIcon').textContent = 'menu';
+        }
+    });
+    function fabScrollTop() {
+        window.scrollTo({top:0,behavior:'smooth'});
+        toggleFab();
+    }
+    function fabSearch() {
+        window.scrollTo({top:0,behavior:'smooth'});
+        toggleFab();
+        setTimeout(() => {
+            const inp = window.innerWidth >= 768
+                ? document.getElementById('searchInput')
+                : document.getElementById('searchInputMobile');
+            if (inp) { inp.focus(); inp.select(); }
+        }, 400);
+    }
+    function fabClear() {
+        ['searchInput','searchInputMobile'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        filterTable();
+        toggleFab();
+    }
     </script>
+
+    <!-- FAB opciones rápidas -->
+    <div id="fabMenu" class="hidden fixed bottom-20 right-4 z-50 flex flex-col items-end gap-2.5">
+        <div class="flex items-center gap-2">
+            <span class="bg-[#1a1b22] border border-[#4a5568]/60 text-[#d1d5db] text-xs font-label font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap">Ir al inicio</span>
+            <button onclick="fabScrollTop()" class="w-10 h-10 rounded-full bg-[#1a1b22] border border-[#4a5568]/60 text-[#bac9cc] flex items-center justify-center shadow-xl hover:border-[#00daf3] hover:text-[#00daf3] transition-all">
+                <span class="material-symbols-outlined text-sm">arrow_upward</span>
+            </button>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="bg-[#1a1b22] border border-[#4a5568]/60 text-[#d1d5db] text-xs font-label font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap">Buscar</span>
+            <button onclick="fabSearch()" class="w-10 h-10 rounded-full bg-[#1a1b22] border border-[#4a5568]/60 text-[#bac9cc] flex items-center justify-center shadow-xl hover:border-[#00daf3] hover:text-[#00daf3] transition-all">
+                <span class="material-symbols-outlined text-sm">search</span>
+            </button>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="bg-[#1a1b22] border border-[#4a5568]/60 text-[#d1d5db] text-xs font-label font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap">Limpiar búsqueda</span>
+            <button onclick="fabClear()" class="w-10 h-10 rounded-full bg-[#1a1b22] border border-[#4a5568]/60 text-[#bac9cc] flex items-center justify-center shadow-xl hover:border-[#00daf3] hover:text-[#00daf3] transition-all">
+                <span class="material-symbols-outlined text-sm">search_off</span>
+            </button>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="bg-[#1a1b22] border border-[#00daf3]/40 text-[#00daf3] text-xs font-label font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap">Nuevo cliente</span>
+            <button onclick="openAddClientModal();toggleFab()" class="w-10 h-10 rounded-full bg-[#00daf3] text-[#00363d] flex items-center justify-center shadow-xl hover:brightness-110 transition-all active:scale-95">
+                <span class="material-symbols-outlined text-sm">person_add</span>
+            </button>
+        </div>
+    </div>
+    <button id="fabBtn" onclick="toggleFab()"
+        class="fixed bottom-5 right-4 z-50 w-14 h-14 rounded-full bg-[#00daf3] text-[#00363d] shadow-[0_4px_20px_rgba(0,218,243,0.4)] flex items-center justify-center hover:brightness-110 transition-all active:scale-95">
+        <span id="fabIcon" class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1">menu</span>
+    </button>
 </body>
 </html>
