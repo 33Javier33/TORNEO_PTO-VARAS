@@ -142,12 +142,12 @@
         .clock { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 300; color: #e3e1ea; line-height: 1; }
         .clock-pm { font-size: 1rem; font-weight: 700; color: #00daf3; }
 
-        /* Podio ganadores */
-        .winner-podium { display:flex; justify-content:center; align-items:flex-end; gap:1rem; text-align:center; padding:2rem; }
-        .podium-place { padding:1.5rem; border-radius:0.75rem; width:30%; color:white; }
-        .podium-1 { background: linear-gradient(135deg,#b45309,#f59e0b); order:2; min-height:200px; box-shadow: 0 0 30px rgba(245,158,11,0.3); }
-        .podium-2 { background: linear-gradient(135deg,#334155,#64748b); order:1; min-height:150px; }
-        .podium-3 { background: linear-gradient(135deg,#7c2d12,#9a3412); order:3; min-height:120px; }
+        /* Podio ganadores CORREGIDO */
+        .winner-podium { display:flex; justify-content:center; align-items:flex-end; gap:1rem; text-align:center; padding:2rem; min-height: 400px; }
+        .podium-place { padding:2rem 1.5rem; border-radius:1rem; width:30%; color:white; display: flex; flex-direction: column; justify-content: center; transition: all 0.5s ease; }
+        .podium-1 { background: linear-gradient(135deg,#b45309,#f59e0b); order:2; min-height:280px; box-shadow: 0 0 40px rgba(245,158,11,0.4); z-index: 2; }
+        .podium-2 { background: linear-gradient(135deg,#334155,#64748b); order:1; min-height:210px; opacity: 0.95; }
+        .podium-3 { background: linear-gradient(135deg,#7c2d12,#9a3412); order:3; min-height:160px; opacity: 0.9; }
 
         /* Loader */
         #page-loader { position:fixed; inset:0; z-index:9999; background:#121319; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:1.5rem; transition:opacity 0.6s ease,visibility 0.6s ease; }
@@ -277,8 +277,8 @@
     <!-- Vista Final -->
     <div id="finalView" class="max-w-[1600px] mx-auto px-4 py-4 w-full" style="display:none;">
         <div class="title-section">
-            <h1 class="font-headline text-4xl font-black text-red-400 uppercase tracking-tighter">⚡ Mesa Final</h1>
-            <p class="text-on-surface-variant text-sm mt-1">Los mejores puntajes compiten ahora</p>
+            <h1 class="font-headline text-5xl font-black text-red-400 uppercase tracking-tighter text-center">⚡ Mesa Final</h1>
+            <p class="text-on-surface-variant text-base mt-2 text-center">Los mejores puntajes compiten ahora</p>
         </div>
         <div class="glass-card rounded-xl border border-outline-variant/20 overflow-hidden">
             <div class="overflow-x-auto p-3">
@@ -289,8 +289,8 @@
 
     <!-- Vista Ganadores -->
     <div id="winnersView" class="max-w-[1600px] mx-auto px-4 py-4 w-full" style="display:none;">
-        <div class="title-section text-center">
-            <h1 class="font-headline text-4xl font-black text-secondary-fixed-dim uppercase tracking-tighter">🏆 Ganadores del Torneo 🏆</h1>
+        <div class="title-section text-center mb-10">
+            <h1 class="font-headline text-6xl font-black text-secondary-fixed-dim uppercase tracking-tighter">🏆 Ganadores del Torneo 🏆</h1>
         </div>
         <div id="winnersPodium" class="winner-podium"></div>
     </div>
@@ -347,13 +347,11 @@
                         // Fondo: imagen si existe, color de base siempre
                         chipEl.style.backgroundColor = chip.color || '#6D4C41';
                         if (chip.image && chip.image.trim() !== '') {
-                            // La pantalla está en /torneo/, fichas en /fichas/
                             chipEl.style.backgroundImage = `url('${GITHUB_FICHAS}${chip.image}')`;
                             chipEl.style.backgroundSize = 'cover';
                             chipEl.style.backgroundPosition = 'center';
                         }
 
-                        // Color del texto según luminosidad del fondo
                         const hex = (chip.color||'#333').replace('#','').padEnd(6,'0');
                         const r=parseInt(hex.substr(0,2),16)||0;
                         const g=parseInt(hex.substr(2,2),16)||0;
@@ -365,7 +363,6 @@
                         const formattedValue = formatNumber(chip.value);
                         const len = formattedValue.length;
 
-                        // Valor
                         const valueSpan = document.createElement('span');
                         valueSpan.className = 'chip-value';
                         valueSpan.style.fontSize = len <= 3 ? '1.1rem' : len <= 5 ? '0.85rem' : len <= 7 ? '0.7rem' : '0.6rem';
@@ -373,7 +370,6 @@
                         valueSpan.textContent = formattedValue;
                         chipEl.appendChild(valueSpan);
 
-                        // Nombre del color (si no hay imagen, mostrar abajo)
                         const colorLabel = chip.colorName || chip.image?.replace(/\.png$/i,'') || '';
                         if (colorLabel && !chip.image) {
                             const nameSpan = document.createElement('span');
@@ -381,7 +377,6 @@
                             nameSpan.textContent = colorLabel;
                             chipEl.appendChild(nameSpan);
                         }
-
                         rack.appendChild(chipEl);
                     });
                 }
@@ -531,7 +526,6 @@
             const tableBody = document.getElementById('tableBody');
             if (playersWithScores.length === 0) {
                 const colSpan = (rounds ? rounds.length : 0) + 3;
-                // Mostrar skeleton mientras no hay jugadores
                 let skeletonHTML = '';
                 for (let s = 0; s < 6; s++) {
                     skeletonHTML += `<tr class="skeleton-row" style="animation-delay:${s*0.07}s">`;
@@ -564,7 +558,7 @@
             tableBody.innerHTML = bodyHTML;
         }
 
-        // CORRECCIÓN: Renderizado de Mesa Final con colores dark integrados
+        // CORRECCIÓN: Renderizado Mesa Final con colores oscuros unificados
         function renderFinalTable() {
             const tournamentType = getTournamentType();
             const finalists = JSON.parse(localStorage.getItem(`finalistas_${tournamentType}`) || '[]');
@@ -582,9 +576,9 @@
             let bodyHTML = '';
             
             finalistsWithScores.forEach((player, index) => {
-                // CORRECCIÓN: Colores oscuros obligatorios para evitar fondos claros
+                // COLORES DARK PARA MESA FINAL
                 const highlightClass = index === 0 ? 'row-gold' : index === 1 ? 'row-silver' : index === 2 ? 'row-bronze' : (index % 2 === 0 ? 'bg-surface-container-high' : 'bg-surface-container');
-                const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : (index + 1) + ".";
+                const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : (index+1)+".";
                 
                 bodyHTML += `<tr class="${highlightClass}">
                     <td class="rank pl-4 text-xl">${emoji}</td>
@@ -600,6 +594,7 @@
             tableBody.innerHTML = bodyHTML;
         }
 
+        // CORRECCIÓN: Podio con tamaños jerárquicos claros
         function renderWinnersPodium() {
             const tournamentType = getTournamentType();
             const finalists = JSON.parse(localStorage.getItem(`finalistas_${tournamentType}`) || '[]');
@@ -607,13 +602,25 @@
             const sortedWinners = finalists.map(f => ({ ...f, totalScore: calculateTotal(f, tournamentType) })).sort((a, b) => b.totalScore - a.totalScore);
             const podiumContainer = document.getElementById('winnersPodium');
             podiumContainer.innerHTML = '';
-            const prizeConfig = [ { prize: prizes.first || 0, emoji: '🥇' }, { prize: prizes.second || 0, emoji: '🥈' }, { prize: prizes.third || 0, emoji: '🥉' }];
+            
+            // PRIZE CONFIG PARA RENDER
+            const prizeConfig = [ 
+                { prize: prizes.first || 0, emoji: '🥇', label: '1ER LUGAR' }, 
+                { prize: prizes.second || 0, emoji: '🥈', label: '2DO LUGAR' }, 
+                { prize: prizes.third || 0, emoji: '🥉', label: '3ER LUGAR' }
+            ];
+
             for (let i = 0; i < 3; i++) {
                 const winner = sortedWinners[i];
                 if (winner) {
                     const podiumDiv = document.createElement('div');
                     podiumDiv.className = `podium-place podium-${i + 1}`;
-                    podiumDiv.innerHTML = `<p class="text-5xl mb-2">${prizeConfig[i].emoji}</p><h3 class="text-2xl font-bold">${formatPlayerName(winner.nombre, winner.apellido)}</h3><p class="text-3xl font-extrabold mt-2">$${formatNumber(prizeConfig[i].prize)}</p>`;
+                    podiumDiv.innerHTML = `
+                        <p class="text-[10px] font-label opacity-70 mb-2 uppercase tracking-widest">${prizeConfig[i].label}</p>
+                        <p class="text-6xl mb-4 animate-bounce" style="animation-duration: 2s">${prizeConfig[i].emoji}</p>
+                        <h3 class="text-2xl font-black leading-tight">${formatPlayerName(winner.nombre, winner.apellido)}</h3>
+                        <p class="text-3xl font-extrabold mt-4 text-white">$${formatNumber(prizeConfig[i].prize)}</p>
+                    `;
                     podiumContainer.appendChild(podiumDiv);
                 }
             }
@@ -655,8 +662,7 @@
                 const [y, m, d] = dateStr.split('-');
                 return { year: parseInt(y), month: parseInt(m) - 1, day: parseInt(d) };
             }
-            const now = new Date();
-            return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
+            return { year: new Date().getFullYear(), month: new Date().getMonth(), day: new Date().getDate() };
         }
 
         function updateCountdownDisplay() {
@@ -729,7 +735,6 @@
             if(clockEl) clockEl.textContent = `${hours}:${minutes}:${seconds}`;
         }
 
-        // ═══ SYNC DESDE SHEETS ════════════════════════════════
         const PANTALLA_GAS_URL = 'https://script.google.com/macros/s/AKfycbzgS7g3_yAEZA_56BtVqJ6-RRt1f_o8wMfdjzGVuLKzXvLH8Z-KiJP4E1SQLoE-edRdJw/exec';
         let pantallaSyncTS = '';
         let pantallaIndicador = null;
@@ -790,7 +795,7 @@
                 if (s.clients)   raw.call(localStorage, 'clientes_'+tid,      JSON.stringify(s.clients));
                 if (s.finalists) raw.call(localStorage, 'finalistas_'+tid,    JSON.stringify(s.finalists));
                 
-                // CORRECCIÓN: Aplicar estado de vista remoto al localStorage público
+                // CORRECCIÓN SYNC VISTA
                 if(s.tournamentViewState){
                     raw.call(localStorage, "tournament_view_state", s.tournamentViewState);
                 }
