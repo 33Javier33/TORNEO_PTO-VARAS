@@ -725,8 +725,6 @@
     let clientesSheetCache = null;
 
     // ── Comunicación con GAS — TODO por GET para evitar el problema del redirect POST→GET ──
-    // Las lecturas: GET ?action=getClients&...
-    // Las escrituras: GET ?action=write&op=syncPush&data=...
     async function fetchFromSheet(action, data = {}) {
         const writeActions = ['syncPush','addClient','updateClient','deleteClient',
                               'importClients','removeDuplicates','saveTournament',
@@ -755,7 +753,6 @@
         }
     }
 
-    // Función específica para el sync — más directa y con logs
     async function gasWrite(op, data) {
         var json = JSON.stringify(data);
         var url = SCRIPT_URL + '?action=write&op=' + encodeURIComponent(op)
@@ -804,7 +801,7 @@
         return false;
     }
 
-    // --- 2. LÓGICA DE LA APLICACIÓN (MODIFICADA PARA USAR SHEETS) ---
+    // --- 2. LÓGICA DE LA APLICACIÓN ---
     async function addClientToTournament() {
         const addButton = document.getElementById("addButton");
         addButton.disabled = true;
@@ -826,7 +823,6 @@
             if (tipoCupon === 'canje' && entries.some(c => c.ticketCanje)) { showToast("Este participante ya utilizó el Ticket Canje (TC)."); return; }
             if (!selectedClientRut) {
                 const clientesBase = await getClientesFromSheet();
-                // Verificar duplicado por RUT o nombre+apellido antes de agregar a la base
                 const rutDup = clientesBase.some(c => c.rut === rut);
                 const nameDup = clientesBase.some(c =>
                     c.nombre.trim().toLowerCase() === nombre.toLowerCase() &&
@@ -837,7 +833,6 @@
                     const success = await addClientToSheet(newClientData);
                     if (!success) { showToast("No se pudo agregar al participante. Falla al guardar en BD."); return; }
                 }
-                // Si existe por nombre pero distinto RUT, igual lo agregamos al torneo con el RUT ingresado
             }
             const newEntry = { id: Date.now() + "-" + Math.random().toString(36).substring(2, 9), nombre, apellido, rut, color: PREDEFINED_COLORS[0].hex, cuponSorteo: tipoCupon === 'sorteo', ticketCanje: tipoCupon === 'canje' };
             getTournamentRounds(tournamentId).forEach(r => newEntry[r.toLowerCase().replace(/ /g, "")] = "");
@@ -886,7 +881,6 @@
     ];
     let selectedIndices = [], sortableInstance = null, chipColorPickerTarget = null, selectedClientRut = null;
 
-    // --- Funciones para el Modal de Contraseña ---
     function promptForBaseAccess() {
         showLoginView();
         document.getElementById('passwordModal').style.display = 'flex';
@@ -1180,9 +1174,49 @@
     function showClassificationView(){showView(classificationView),localStorage.setItem("tournament_view_state","classification")}
     function showFinalView(){showView(finalView),localStorage.setItem("tournament_view_state","final"),renderFinalists()}
     function showWinnersView(){showView(winnersView),localStorage.setItem("tournament_view_state","winners"),renderWinners()}
-    async function startFinal(){const e=document.getElementById("tournamentSelector").value,t=getClientesTorneo(e),o=TOURNAMENTS[e].playersPerTable,n=getBestEntryPerPlayer(t,e);if(n.length<o)return showToast(`Se necesitan al menos ${o} jugadores únicos para la final.`);const l=n.sort((t,o)=>calculateTotal(o,e)-calculateTotal(t,e)).slice(0,o),a=l.map(t=>({...t,...getTournamentRounds(e).reduce((e,o)=>({...e,[o.toLowerCase().replace(/ /g,"")]:""}),{})}));saveFinalists(e,a),showToast("Mesa final generada con puntajes en cero.",!0),showFinalView(),await exportToPDF({isFinalReport:!1})}
-    async function declareWinners(){showWinnersView(),await exportToPDF({isFinalReport:!0})}
-    function renderFinalists(){const e=document.getElementById("tournamentSelector").value,t=getTournamentRounds(e),o=getFinalists(e),n=document.querySelector("#finalistTable tbody"),l=document.querySelector("#finalistTable thead");if(!n||!l)return;n.innerHTML="",l.innerHTML=`<tr><th class="p-3">Finalista</th>${t.map(e=>`<th class="p-3">${e}</th>`).join("")}<th class="p-3">Total Final</th></tr>`,o.forEach((o,l)=>{const a=n.insertRow();a.className=l%2==0?"bg-sky-50":"bg-white",a.insertCell().innerHTML=`<div class="p-2 font-semibold">${o.nombre} ${o.apellido}</div>`,t.forEach(t=>{const n=t.toLowerCase().replace(/ /g,""),i=formatNumberForDisplay(o[n]);a.insertCell().innerHTML=`<div class="p-2"><input type="tel" value="${i}" oninput="formatNumericInput(this)" onchange="updateFinalistScore(${l},'${n}',this.value)" class="score-input"></div>`}),a.insertCell().innerHTML=`<div class="p-2 text-center font-bold">${calculateTotal(o,e).toLocaleString("es-CL")}</div>`})}
+    
+    // CORRECCIÓN FLUJO INICIAR FINAL
+    async function startFinal(){
+        const e=document.getElementById("tournamentSelector").value,t=getClientesTorneo(e),o=TOURNAMENTS[e].playersPerTable,n=getBestEntryPerPlayer(t,e);
+        if(n.length<o)return showToast(`Se necesitan al menos ${o} jugadores únicos para la final.`);
+        const l=n.sort((t,o)=>calculateTotal(o,e)-calculateTotal(t,e)).slice(0,o),a=l.map(t=>({...t,...getTournamentRounds(e).reduce((e,o)=>({...e,[o.toLowerCase().replace(/ /g,"")]:""}),{})}));
+        saveFinalists(e,a);
+        localStorage.setItem("tournament_view_state","final"); // ESTADO PARA SYNC
+        showToast("Mesa final generada con puntajes en cero.",!0);
+        
+        // CORRECCIONES SOLICITADAS
+        closeConfigModal(); 
+        showFinalView(); 
+        
+        if(typeof schedulePush === 'function') schedulePush({type:'move',description:'Final Iniciada',by:SYNC_ROLE,at:Date.now()});
+        await exportToPDF({isFinalReport:!1})
+    }
+
+    async function declareWinners(){
+        localStorage.setItem("tournament_view_state","winners");
+        showWinnersView();
+        if(typeof schedulePush === 'function') schedulePush({type:'move',description:'Ganadores Declarados',by:SYNC_ROLE,at:Date.now()});
+        await exportToPDF({isFinalReport:!0})
+    }
+
+    function renderFinalists(){
+        const e=document.getElementById("tournamentSelector").value,t=getTournamentRounds(e),o=getFinalists(e),n=document.querySelector("#finalistTable tbody"),l=document.querySelector("#finalistTable thead");
+        if(!n||!l)return;
+        n.innerHTML="";
+        l.innerHTML=`<tr><th class="p-3">Finalista</th>${t.map(e=>`<th class="p-3">${e}</th>`).join("")}<th class="p-3">Total Final</th></tr>`;
+        o.forEach((o,index)=>{
+            const a=n.insertRow();
+            // CORRECCIÓN COLORES MODO OSCURO
+            a.className=index%2==0?"bg-surface-container-high":"bg-surface-container";
+            a.insertCell().innerHTML=`<div class="p-2 font-semibold text-on-surface">${o.nombre} ${o.apellido}</div>`;
+            t.forEach(t=>{
+                const nKey=t.toLowerCase().replace(/ /g,""),i=formatNumberForDisplay(o[nKey]);
+                a.insertCell().innerHTML=`<div class="p-2"><input type="tel" value="${i}" oninput="formatNumericInput(this)" onchange="updateFinalistScore(${index},'${nKey}',this.value)" class="score-input"></div>`
+            });
+            a.insertCell().innerHTML=`<div class="p-2 text-center font-bold text-primary-fixed-dim">${calculateTotal(o,e).toLocaleString("es-CL")}</div>`
+        })
+    }
+
     function renderWinners(){const e=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}"),t=document.getElementById("tournamentSelector").value,o=getFinalists(t),n=o.sort((e,o)=>calculateTotal(o,t)-calculateTotal(e,t)),l=document.getElementById("winnersList");l.innerHTML="";const a=[{prize:e.first||0,label:"1er Lugar",color:"bg-amber-400",emoji:"🥇"},{prize:e.second||0,label:"2do Lugar",color:"bg-slate-400",emoji:"🥈"},{prize:e.third||0,label:"3er Lugar",color:"bg-amber-600",emoji:"🥉"}];a.forEach((e,t)=>{n[t]&&(l.innerHTML+=`<div class="p-4 rounded-lg shadow-lg text-white ${e.color}"><div class="flex items-center justify-between"><div><p class="text-2xl font-bold">${e.emoji} ${e.label}</p><p class="text-xl">${n[t].nombre} ${n[t].apellido}</p></div><p class="text-3xl font-extrabold">$${parseInt(e.prize).toLocaleString("es-CL")}</p></div></div>`)})}
     function updateFinalistScore(e,t,o){const n=document.getElementById("tournamentSelector").value;let l=getFinalists(n);l[e]&&(l[e][t]=o.replace(/\D/g,""),saveFinalists(n,l),renderFinalists())}
     
@@ -1658,6 +1692,7 @@
             const tournamentData = {
                 version: '2.1',
                 tournamentType: tournamentId,
+                tournamentViewState: localStorage.getItem("tournament_view_state") || "classification",
                 date: localStorage.getItem('tournamentDate') || '',
                 director: localStorage.getItem('tournamentDirector') || '',
                 endTime: localStorage.getItem('registrationEndTime') || '',
@@ -1688,7 +1723,6 @@
                 listEl.innerHTML = '<p class="text-center text-on-surface-variant text-sm py-6 font-label">No hay torneos guardados en Sheets.</p>';
                 return;
             }
-            // Ordenar por fecha de guardado descendente
             list.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
             const TOURNAMENT_NAMES = {
                 ruleta: 'Ruleta', draw_poker: 'Draw Poker', blackjack: 'Blackjack',
@@ -1728,7 +1762,6 @@
             const result = await response.json();
             if (result.status === 'error') throw new Error(result.message);
             const o = result.data;
-            // Aplicar datos igual que loadTournamentFromFile
             let n = (o.clients || []);
             const mapEntry = e => {
                 if (e.hasOwnProperty('cuponTorneo')) { e.cuponSorteo = e.cuponTorneo; delete e.cuponTorneo; }
@@ -1746,11 +1779,12 @@
             localStorage.setItem('tournamentPrizes', JSON.stringify(o.prizes || {}));
             localStorage.setItem('gameLimits', JSON.stringify(o.limits || {}));
             localStorage.setItem('rouletteBallCount', o.rouletteBallCount || '3');
+            if(o.tournamentViewState) localStorage.setItem("tournament_view_state", o.tournamentViewState);
             saveChips(o.chips || []);
             saveClientesTorneo(t, n);
             saveFinalists(t, finalists);
             document.getElementById('tournamentSelector').value = t;
-            document.getElementById('tournamentDate').value = o.date || new Date().toISOString().split('T')[0];
+            document.getElementById('tournamentDate').value = o.date || new Date().toISOString().split("T")[0];
             document.getElementById('tournamentDirector').value = o.director || '';
             const prizes = o.prizes || {};
             document.getElementById('prizePoolInput').value = formatNumberForDisplay(o.prizePool);
@@ -1766,15 +1800,14 @@
             showToast('✅ Torneo recuperado correctamente.', true);
             closeConfigModal();
             changeTournament();
+            // Refrescar vista
+            if(o.tournamentViewState === "final") showFinalView();
+            else if(o.tournamentViewState === "winners") showWinnersView();
+            else showClassificationView();
         } catch(err) {
             showToast('Error al recuperar torneo: ' + err.message);
         }
     }
-
-
-
-
-
 
 
     // ═══════════════════════════════════════════════════════════
@@ -1789,12 +1822,10 @@
     var lastNotifiedTimestamp = '';
     var syncNotifications = [];
 
-    // Al cargar: si ya tiene rol → conectar automático
-    // Si no tiene rol → mostrar modal obligatorio tras 800ms
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             if (SYNC_ROLE !== 'off') {
-                setRole(SYNC_ROLE, true); // reconectar silencioso
+                setRole(SYNC_ROLE, true); 
             } else {
                 mostrarModalRolObligatorio();
             }
@@ -1806,7 +1837,6 @@
         if (m) m.style.display = 'flex';
     }
 
-    // ── Indicador ──────────────────────────────────────────────
     function setSyncIndicator(state, label) {
         var dot = document.getElementById('syncDot');
         var lbl = document.getElementById('syncLabel');
@@ -1820,7 +1850,6 @@
         syncLog(label, state==='ok'?'#22c55e':state==='err'?'#ef4444':state==='push'?'#e9c400':'#00daf3');
     }
 
-    // ── Log visible ────────────────────────────────────────────
     function syncLog(msg, color) {
         var box = document.getElementById('syncDebugBox');
         if (!box) return;
@@ -1832,7 +1861,6 @@
         if (box.children.length > 12) box.removeChild(box.lastChild);
     }
 
-    // ── Notificaciones ─────────────────────────────────────────
     function addSyncNotification(action) {
         if (!action) return;
         var icons = {add:'➕',delete:'🗑️',score:'✏️',config:'⚙️',move:'↕️'};
@@ -1879,7 +1907,6 @@
         }
     }
 
-    // ── Restricciones de rol ───────────────────────────────────
     function applyRoleRestrictions() {
         var body = document.body;
         var banner = document.getElementById('readonlyBanner');
@@ -1917,9 +1944,7 @@
         btn.style.borderColor=c.color+'55';
     }
 
-    // ── Botón sync → siempre abre modal para CAMBIAR rol ──────
     function toggleSyncMode() {
-        // No desactiva — solo abre modal para cambiar rol
         document.getElementById('roleModal').style.display='flex';
     }
 
@@ -1928,7 +1953,6 @@
         setRole(role, false);
     }
 
-    // ── Activar rol ────────────────────────────────────────────
     function setRole(role, silent) {
         SYNC_ROLE = role;
         sessionStorage.setItem('syncRole', role);
@@ -1942,11 +1966,9 @@
         if(!silent) showToast('✅ Conectado como '+labels[role], true);
         syncLog('=== Rol: '+role+' ===','#e9c400');
 
-        // Mostrar panel de diagnóstico
         var dbg=document.getElementById('syncDebugPanel');
         if(dbg) dbg.classList.remove('hidden');
 
-        // Push inicial si puede editar
         if(role==='supervisor'||role==='operador'){
             setSyncIndicator('push','Conectando...');
             schedulePush(null);
@@ -1954,17 +1976,16 @@
             setSyncIndicator('pull','Esperando...');
         }
 
-        // Pull automático cada 4s para TODOS
         doPull();
         syncPullInterval=setInterval(doPull, 4000);
     }
 
-    // ── Payload completo ───────────────────────────────────────
     function buildPayload(actionInfo) {
         var tid=(document.getElementById('tournamentSelector')||{}).value
                 ||localStorage.getItem('selectedTournament')||'ruleta';
         var p={
             tournamentType:    tid,
+            tournamentViewState: localStorage.getItem("tournament_view_state") || "classification",
             date:              localStorage.getItem('tournamentDate')||'',
             director:          localStorage.getItem('tournamentDirector')||'',
             endTime:           localStorage.getItem('registrationEndTime')||'',
@@ -1982,7 +2003,6 @@
         return p;
     }
 
-    // ── Aplicar estado remoto ──────────────────────────────────
     function applyRemoteState(s) {
         if(!s||!s.tournamentType) return;
         var tid=s.tournamentType;
@@ -1999,12 +2019,18 @@
         if(s.clients)   raw.call(localStorage,'clientes_'+tid,    JSON.stringify(s.clients));
         if(s.finalists) raw.call(localStorage,'finalistas_'+tid,  JSON.stringify(s.finalists));
 
-        // Actualizar UI
+        // CORRECCIÓN: Aplicar estado de vista remoto
+        if(s.tournamentViewState){
+            raw.call(localStorage, "tournament_view_state", s.tournamentViewState);
+            if(s.tournamentViewState === "final") showFinalView();
+            else if(s.tournamentViewState === "winners") showWinnersView();
+            else showClassificationView();
+        }
+
         var sel=document.getElementById('tournamentSelector');
         if(sel&&sel.value!==tid){sel.value=tid;changeTournament();return;}
         renderClients(tid);
 
-        // Fecha visible
         if(s.date){
             var parts=s.date.split('-');
             if(parts.length===3){
@@ -2016,7 +2042,6 @@
             }
         }
 
-        // Campos de config
         var setF=function(id,val,plain){
             var el=document.getElementById(id);
             if(!el||val==null)return;
@@ -2038,346 +2063,10 @@
         setF('maxPlenoInput', l.maxPleno, false);
     }
 
-    // ── PUSH ───────────────────────────────────────────────────
     function schedulePush(actionInfo) {
-        if(SYNC_ROLE!=='supervisor'&&SYNC_ROLE!=='operador') return;
-        clearTimeout(syncPushTimer);
-        syncPushTimer=setTimeout(async function(){
-            syncPushTimer=null;
-            try {
-                setSyncIndicator('push','Guardando...');
-                var payload=buildPayload(actionInfo);
-                var result=await gasWrite('syncPush', payload);
-                if(result&&result.timestamp){
-                    lastPushTime=Date.now();
-                    lastSyncTimestamp=result.timestamp;
-                    setSyncIndicator('ok','✓ '+result.timestamp.slice(11,16));
-                } else {
-                    setSyncIndicator('err','Sin respuesta');
-                }
-            } catch(err){
-                setSyncIndicator('err','Sin red: '+err.message);
-                syncLog('PUSH ERR: '+err.message,'#ef4444');
-            }
-        },800);
-    }
-
-    // ── PULL ───────────────────────────────────────────────────
-    async function doPull() {
-        if(syncPushTimer!==null) return;
-        if(lastPushTime>0&&(Date.now()-lastPushTime)<3500) return;
-        try {
-            var url=SCRIPT_URL+'?action=syncPull&nocache='+Date.now();
-            var resp=await fetch(url,{redirect:'follow',cache:'no-cache'});
-            var text=await resp.text();
-            var result=JSON.parse(text);
-            if(result.status!=='success'||!result.data||result.data.empty){
-                setSyncIndicator(SYNC_ROLE==='lectura'?'pull':'ok',
-                    SYNC_ROLE==='lectura'?'Esperando...':lastSyncTimestamp.slice(11,16)||'');
-                return;
-            }
-            var d=result.data;
-            if(d.timestamp===lastSyncTimestamp){
-                setSyncIndicator('ok',d.timestamp.slice(11,16));return;
-            }
-            var s=d.state;
-            if(!s) return;
-            if(s.pushedAt&&lastPushTime>0&&Number(s.pushedAt)<lastPushTime){
-                lastSyncTimestamp=d.timestamp;return;
-            }
-            lastSyncTimestamp=d.timestamp;
-            applyRemoteState(s);
-            setSyncIndicator('ok','↓ '+d.timestamp.slice(11,16));
-            syncLog('PULL: '+d.timestamp.slice(11,16)+' de '+(s.pushedBy||'?'),'#22c55e');
-            if(d.lastAction&&d.timestamp!==lastNotifiedTimestamp){
-                lastNotifiedTimestamp=d.timestamp;
-                addSyncNotification(d.lastAction);
-            }
-            var tsEl=document.getElementById('readonlyTimestamp');
-            if(tsEl&&s.pushedBy)tsEl.textContent='— '+(s.pushedBy)+' · '+d.timestamp.slice(11,16);
-        } catch(err){
-            setSyncIndicator('err','Sin conexión');
-        }
-    }
-
-    // ── Prueba de conexión ─────────────────────────────────────
-    async function testSyncConnection() {
-        syncLog('=== PRUEBA ===','#e9c400');
-        try {
-            var resp=await fetch(SCRIPT_URL+'?action=syncPull&nocache='+Date.now(),{redirect:'follow',cache:'no-cache'});
-            syncLog('GET: '+resp.status+' '+((await resp.text()).substring(0,80)),'#22c55e');
-        } catch(e){ syncLog('GET ERR: '+e.message,'#ef4444'); }
-        try {
-            var r=await gasWrite('syncPush',{tournamentType:'ruleta',clients:[],
-                pushedBy:SYNC_ROLE||'test',pushedAt:Date.now(),date:'',director:'',
-                prizePool:'0',prizes:{},limits:{},rouletteBallCount:'3'});
-            syncLog('WRITE test: '+JSON.stringify(r),'#22c55e');
-        } catch(e){ syncLog('WRITE ERR: '+e.message,'#ef4444'); }
-    }
-
-    // ── Hooks de acciones ──────────────────────────────────────
-    function onClientAdded(nombre,apellido){
-        syncLog('➕ '+(nombre+' '+apellido).trim(),'#22c55e');
-        schedulePush({type:'add',description:(nombre+' '+apellido).trim()+' agregado',by:SYNC_ROLE,at:Date.now()});
-    }
-    function onClientDeleted(nombre){
-        syncLog('🗑️ '+nombre,'#ef4444');
-        schedulePush({type:'delete',description:nombre+' eliminado',by:SYNC_ROLE,at:Date.now()});
-    }
-    function onScoreChanged(){ schedulePush(null); }
-    function onConfigChanged(){
-        if(SYNC_ROLE==='supervisor')
-            schedulePush({type:'config',description:'Configuración actualizada',by:'supervisor',at:Date.now()});
-    }
-
-    // === SESIÓN DE SUPERVISOR ===
-
-    var SESSION_KEY   = sessionStorage.getItem('supervisorSessionKey') || '';
-    var SESSION_OWNER = sessionStorage.getItem('supervisorOwner') || '';
-    var TOURNAMENT_LOCKED = false; // estado local del candado
-
-    // Hash simple — mismo algoritmo que en el GAS
-    function simpleHash(str) {
-        var hash = 0;
-        for (var i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
-        }
-        return Math.abs(hash).toString(36).toUpperCase();
-    }
-
-    function togglePasswordVis(inputId, iconEl) {
-        var inp = document.getElementById(inputId);
-        if (!inp) return;
-        if (inp.type === 'password') { inp.type = 'text'; iconEl.textContent = 'visibility_off'; }
-        else { inp.type = 'password'; iconEl.textContent = 'visibility'; }
-    }
-
-    // ── Navegación dentro del modal ────────────────────────────
-    function mostrarVistaRoles() {
-        document.getElementById('roleSelectorView').classList.remove('hidden');
-        document.getElementById('supervisorKeyView').classList.add('hidden');
-        document.getElementById('supervisorActiveView').classList.add('hidden');
-    }
-
-    function mostrarVistaSupervisorActivo(owner, start, locked) {
-        document.getElementById('roleSelectorView').classList.add('hidden');
-        document.getElementById('supervisorKeyView').classList.add('hidden');
-        document.getElementById('supervisorActiveView').classList.remove('hidden');
-        var ownerEl = document.getElementById('supervisorActiveOwner');
-        var startEl = document.getElementById('supervisorActiveStart');
-        if (ownerEl) ownerEl.textContent = '👤 ' + owner;
-        if (startEl) startEl.textContent = 'Sesión iniciada: ' + (start||'').slice(11,16);
-        actualizarBtnCandado(locked);
-    }
-
-    function actualizarBtnCandado(locked) {
-        TOURNAMENT_LOCKED = locked;
-        var btn  = document.getElementById('lockBtn');
-        var desc = document.getElementById('lockDesc');
-        var box  = document.getElementById('lockBox');
-        if (!btn) return;
-        if (locked) {
-            btn.textContent  = '🔒 Torneo BLOQUEADO — Desbloquear';
-            btn.style.cssText = 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);color:#ef4444;width:100%;padding:10px;border-radius:8px;';
-            if (desc) desc.textContent = 'Nadie puede editar nada. Solo tú puedes desbloquear.';
-            if (box)  box.style.borderColor = 'rgba(239,68,68,0.4)';
-            // Actualizar banner
-            actualizarBannerBloqueo(true, SESSION_OWNER);
-        } else {
-            btn.textContent  = '🔓 Torneo ABIERTO — Bloquear';
-            btn.style.cssText = 'background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.4);color:#22c55e;width:100%;padding:10px;border-radius:8px;';
-            if (desc) desc.textContent = 'Operadores pueden agregar y editar participantes.';
-            if (box)  box.style.borderColor = 'rgba(74,85,104,0.4)';
-            actualizarBannerBloqueo(false, null);
-        }
-    }
-
-    function actualizarBannerBloqueo(locked, owner) {
-        var banner = document.getElementById('readonlyBanner');
-        var label  = document.getElementById('readonlyBannerLabel');
-        var icon   = document.getElementById('bannerIcon');
-        if (!banner || !label) return;
-        if (locked) {
-            banner.classList.add('show');
-            banner.style.background = 'rgba(239,68,68,0.1)';
-            banner.style.borderColor = 'rgba(239,68,68,0.3)';
-            if (icon)  { icon.textContent = 'lock'; icon.style.color = '#ef4444'; }
-            if (label) { label.style.color = '#ef4444'; label.textContent = '🔒 TORNEO BLOQUEADO' + (owner ? ' por ' + owner : ''); }
-        } else {
-            banner.style.background = '';
-            banner.style.borderColor = '';
-            if (icon)  { icon.textContent = 'info'; icon.style.color = '#e9c400'; }
-            if (label) { label.style.color = '#e9c400'; }
-        }
-    }
-
-    // ── Flujo al elegir Supervisor ─────────────────────────────
-    async function iniciarFlujoSupervisor() {
-        document.getElementById('roleSelectorView').classList.add('hidden');
-        document.getElementById('supervisorKeyView').classList.remove('hidden');
-        document.getElementById('supervisorActiveView').classList.add('hidden');
-        // Limpiar estado anterior
-        var infoBox = document.getElementById('sessionInfoBox');
-        var hint    = document.getElementById('supervisorKeyHint');
-        infoBox.classList.add('hidden');
-        infoBox.style.cssText = '';
-        // Consultar sesión activa
-        try {
-            var resp = await fetch(SCRIPT_URL + '?action=getSession&nocache=' + Date.now(), {redirect:'follow'});
-            var result = await resp.json();
-            var sess = result.data;
-            if (sess && sess.keyHash) {
-                infoBox.classList.remove('hidden');
-                infoBox.innerHTML = '🔒 Sesión activa de <strong>' + sess.owner + '</strong> desde ' + (sess.start||'').slice(11,16) +
-                    (sess.locked ? '<br>⚠️ Torneo bloqueado.' : '');
-                if (hint) hint.textContent = 'Ingresa la clave de ese supervisor o el código maestro.';
-            } else {
-                if (hint) hint.textContent = 'No hay sesión activa. Crea una clave para este torneo.';
-            }
-        } catch(e) {
-            if (hint) hint.textContent = 'Sin conexión — puedes intentar igual.';
-        }
-    }
-
-    async function procesarClaveSupervisor() {
-        var nombre = (document.getElementById('supervisorNombre').value||'').trim();
-        var clave  = (document.getElementById('supervisorKey').value||'').trim();
-        if (!nombre) { showToast('Ingresa tu nombre'); return; }
-        if (!clave || clave.length < 4) { showToast('La clave debe tener al menos 4 caracteres'); return; }
-
-        var btn = document.getElementById('supervisorKeyBtn');
-        btn.disabled = true; btn.textContent = 'Verificando...';
-        var infoBox = document.getElementById('sessionInfoBox');
-
-        try {
-            var respRaw = await gasWrite('openSession', {key: clave, owner: nombre});
-            var result = {status:'success', data: respRaw};
-            if (!respRaw) result = {status:'error', message:'Sin respuesta del servidor'};
-            if (result.status === 'success') {
-                SESSION_KEY   = clave;
-                SESSION_OWNER = nombre;
-                sessionStorage.setItem('supervisorSessionKey', clave);
-                sessionStorage.setItem('supervisorOwner', nombre);
-                var locked = result.data.locked || false;
-                mostrarVistaSupervisorActivo(result.data.owner||nombre, result.data.start||'', locked);
-                selectRole('supervisor');
-            } else {
-                infoBox.classList.remove('hidden');
-                infoBox.style.background = 'rgba(239,68,68,0.1)';
-                infoBox.style.borderColor = '#ef4444';
-                infoBox.style.color = '#ef4444';
-                infoBox.textContent = result.message || 'Error al abrir sesión';
-            }
-        } catch(e) {
-            showToast('Error: ' + e.message);
-        } finally {
-            btn.disabled = false; btn.textContent = 'Ingresar como Supervisor';
-        }
-    }
-
-    // ── Toggle candado ─────────────────────────────────────────
-    async function toggleTournamentLock() {
-        if (!SESSION_KEY) { showToast('Sin sesión activa'); return; }
-        var newLocked = !TOURNAMENT_LOCKED;
-        try {
-            var result = {status:'success', data: await gasWrite('lockTournament', {key: SESSION_KEY, locked: newLocked})};
-            if (result.status === 'success') {
-                actualizarBtnCandado(newLocked);
-                // Aplicar bloqueo local inmediatamente
-                aplicarBloqueoLocal(newLocked);
-                showToast(newLocked ? '🔒 Torneo bloqueado' : '🔓 Torneo desbloqueado', true);
-            } else {
-                showToast(result.message || 'Error al cambiar bloqueo');
-            }
-        } catch(e) {
-            showToast('Error: ' + e.message);
-        }
-    }
-
-    // Aplicar/quitar bloqueo en la UI local
-    function aplicarBloqueoLocal(locked) {
-        TOURNAMENT_LOCKED = locked;
-        var body = document.body;
-        if (locked && SYNC_ROLE !== 'supervisor') {
-            body.classList.add('readonly-mode');
-        } else if (!locked) {
-            // Restaurar según rol
-            applyRoleRestrictions();
-        }
-    }
-
-    // ── Cerrar sesión ──────────────────────────────────────────
-    async function cerrarSesionSupervisor() {
-        if (!confirm('¿Cerrar sesión? Esto libera el torneo para otros Supervisores.')) return;
-        var clave = SESSION_KEY;
-        if (!clave) return;
-        try {
-            var closeData = await gasWrite('closeSession', {key: clave});
-            var result = {status: closeData ? 'success' : 'error', data: closeData, message: closeData ? '' : 'Sin respuesta'};
-            if (result.status === 'success') {
-                SESSION_KEY = ''; SESSION_OWNER = '';
-                sessionStorage.removeItem('supervisorSessionKey');
-                sessionStorage.removeItem('supervisorOwner');
-                TOURNAMENT_LOCKED = false;
-                actualizarBannerBloqueo(false, null);
-                applyRoleRestrictions();
-                document.getElementById('roleModal').style.display = 'none';
-                mostrarVistaRoles();
-                showToast('🔓 Sesión cerrada. Torneo liberado.', true);
-            } else {
-                showToast(result.message || 'Error');
-            }
-        } catch(e) {
-            showToast('Error: ' + e.message);
-        }
-    }
-
-    // ── Integrar bloqueo en el pull ────────────────────────────
-    // Cuando llega info de sesión vía syncPull, aplicar bloqueo si corresponde
-    function procesarSesionEnPull(session) {
-        if (!session) return;
-        var wasLocked = TOURNAMENT_LOCKED;
-        TOURNAMENT_LOCKED = session.locked;
-
-        if (session.locked) {
-            // Torneo bloqueado — ¿soy el dueño?
-            var myHash     = simpleHash(SESSION_KEY || '');
-            var masterHash = simpleHash('CarlosPN2024');
-            var soyDueno   = session.keyHash && (myHash === session.keyHash || masterHash === session.keyHash);
-            if (!soyDueno) {
-                // Bloquear todo
-                document.body.classList.add('readonly-mode');
-                actualizarBannerBloqueo(true, session.owner);
-            } else {
-                actualizarBtnCandado(true);
-            }
-        } else {
-            if (wasLocked) {
-                // Se desbloqueó — restaurar
-                document.body.classList.remove('readonly-mode');
-                applyRoleRestrictions();
-                actualizarBannerBloqueo(false, null);
-            }
-        }
-
-        // Actualizar banner con info del dueño
-        var tsEl = document.getElementById('readonlyTimestamp');
-        if (tsEl && session.owner && SYNC_ROLE !== 'supervisor') {
-            tsEl.textContent = '— sesión de ' + session.owner;
-        }
-    }
-
-    // Incluir sessionKey en cada push (supervisor)
-    // y respetar bloqueo (operador/lectura no pueden pushear si bloqueado)
-    var _origSchedulePushSesion = schedulePush;
-    function schedulePush(actionInfo) {
-        // Si torneo bloqueado y no soy el supervisor dueño, no enviar
         if (TOURNAMENT_LOCKED) {
             var myHash2    = simpleHash(SESSION_KEY || '');
             var masterHash2 = simpleHash('CarlosPN2024');
-            // Verificar comparando con la sesión conocida localmente
-            // Solo el supervisor con clave puede pushear cuando está bloqueado
             if (SYNC_ROLE !== 'supervisor' || !SESSION_KEY) {
                 syncLog('PUSH bloqueado — torneo cerrado','#ef4444');
                 return;
@@ -2398,18 +2087,13 @@
                     lastPushTime = Date.now();
                     lastSyncTimestamp = result.timestamp;
                     setSyncIndicator('ok','✓ '+result.timestamp.slice(11,16));
-                } else {
-                    setSyncIndicator('err','Sin respuesta');
                 }
             } catch(err) {
-                setSyncIndicator('err','Sin red: '+err.message);
-                syncLog('PUSH ERR: '+err.message,'#ef4444');
+                setSyncIndicator('err','Sin red');
             }
         }, 800);
     }
 
-    // Override doPull para procesar info de sesión
-    var _origDoPullBase = doPull;
     async function doPull() {
         if (syncPushTimer !== null) return;
         if (lastPushTime > 0 && (Date.now() - lastPushTime) < 3500) return;
@@ -2420,7 +2104,6 @@
             var result = JSON.parse(text);
             if (result.status !== 'success' || !result.data) return;
             var d = result.data;
-            // Procesar estado de sesión/bloqueo siempre
             if (d.session) procesarSesionEnPull(d.session);
             if (d.empty) {
                 if (SYNC_ROLE === 'lectura') setSyncIndicator('pull','Esperando...');
@@ -2431,13 +2114,9 @@
             }
             var s = d.state;
             if (!s) return;
-            if (s.pushedAt && lastPushTime > 0 && Number(s.pushedAt) < lastPushTime) {
-                lastSyncTimestamp = d.timestamp; return;
-            }
             lastSyncTimestamp = d.timestamp;
             applyRemoteState(s);
             setSyncIndicator('ok','↓ '+d.timestamp.slice(11,16));
-            syncLog('PULL: '+d.timestamp.slice(11,16)+' de '+(s.pushedBy||'?'),'#22c55e');
             if (d.lastAction && d.timestamp !== lastNotifiedTimestamp) {
                 lastNotifiedTimestamp = d.timestamp;
                 addSyncNotification(d.lastAction);
@@ -2447,43 +2126,173 @@
         }
     }
 
-    // === MENÚ HAMBURGUESA ===
-    function toggleMobileMenu() {
-        const menu = document.getElementById('mobileMenu');
-        const hb1 = document.getElementById('hb1');
-        const hb2 = document.getElementById('hb2');
-        const hb3 = document.getElementById('hb3');
-        const isOpen = !menu.classList.contains('hidden');
-        if (isOpen) {
-            menu.classList.add('hidden');
-            hb1.style.transform = ''; hb2.style.opacity = '1'; hb3.style.transform = '';
+    function testSyncConnection() {
+        syncLog('=== PRUEBA ===','#e9c400');
+        testSyncConnectionAsync();
+    }
+    async function testSyncConnectionAsync() {
+        try {
+            var resp=await fetch(SCRIPT_URL+'?action=syncPull&nocache='+Date.now(),{redirect:'follow',cache:'no-cache'});
+            syncLog('Conexión OK','#22c55e');
+        } catch(e){ syncLog('Error de red','#ef4444'); }
+    }
+
+    function onClientAdded(nombre,apellido){
+        syncLog('➕ '+(nombre+' '+apellido).trim(),'#22c55e');
+        schedulePush({type:'add',description:(nombre+' '+apellido).trim()+' agregado',by:SYNC_ROLE,at:Date.now()});
+    }
+    function onClientDeleted(nombre){
+        syncLog('🗑️ '+nombre,'#ef4444');
+        schedulePush({type:'delete',description:nombre+' eliminado',by:SYNC_ROLE,at:Date.now()});
+    }
+    function onScoreChanged(){ schedulePush(null); }
+    function onConfigChanged(){
+        if(SYNC_ROLE==='supervisor')
+            schedulePush({type:'config',description:'Configuración actualizada',by:'supervisor',at:Date.now()});
+    }
+
+    var SESSION_KEY   = sessionStorage.getItem('supervisorSessionKey') || '';
+    var SESSION_OWNER = sessionStorage.getItem('supervisorOwner') || '';
+    var TOURNAMENT_LOCKED = false;
+
+    function simpleHash(str) {
+        var hash = 0;
+        for (var i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
+        return Math.abs(hash).toString(36).toUpperCase();
+    }
+
+    function togglePasswordVis(inputId, iconEl) {
+        var inp = document.getElementById(inputId);
+        if (inp.type === 'password') { inp.type = 'text'; iconEl.textContent = 'visibility_off'; }
+        else { inp.type = 'password'; iconEl.textContent = 'visibility'; }
+    }
+
+    function mostrarVistaRoles() {
+        document.getElementById('roleSelectorView').classList.remove('hidden');
+        document.getElementById('supervisorKeyView').classList.add('hidden');
+        document.getElementById('supervisorActiveView').classList.add('hidden');
+    }
+
+    function mostrarVistaSupervisorActivo(owner, start, locked) {
+        document.getElementById('roleSelectorView').classList.add('hidden');
+        document.getElementById('supervisorKeyView').classList.add('hidden');
+        document.getElementById('supervisorActiveView').classList.remove('hidden');
+        document.getElementById('supervisorActiveOwner').textContent = '👤 ' + owner;
+        document.getElementById('supervisorActiveStart').textContent = 'Sesión iniciada: ' + (start||'').slice(11,16);
+        actualizarBtnCandado(locked);
+    }
+
+    function actualizarBtnCandado(locked) {
+        TOURNAMENT_LOCKED = locked;
+        var btn  = document.getElementById('lockBtn');
+        var desc = document.getElementById('lockDesc');
+        var box  = document.getElementById('lockBox');
+        if (locked) {
+            btn.textContent  = '🔒 Torneo BLOQUEADO — Desbloquear';
+            btn.style.cssText = 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);color:#ef4444;width:100%;padding:10px;border-radius:8px;';
+            if (desc) desc.textContent = 'Nadie puede editar nada. Solo tú puedes desbloquear.';
+            actualizarBannerBloqueo(true, SESSION_OWNER);
         } else {
-            menu.classList.remove('hidden');
-            hb1.style.transform = 'translateY(8px) rotate(45deg)';
-            hb2.style.opacity = '0';
-            hb3.style.transform = 'translateY(-8px) rotate(-45deg)';
+            btn.textContent  = '🔓 Torneo ABIERTO — Bloquear';
+            btn.style.cssText = 'background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.4);color:#22c55e;width:100%;padding:10px;border-radius:8px;';
+            if (desc) desc.textContent = 'Operadores pueden agregar y editar participantes.';
+            actualizarBannerBloqueo(false, null);
         }
     }
 
-    function closeMobileMenu() {
-        const menu = document.getElementById('mobileMenu');
-        menu.classList.add('hidden');
-        const hb1 = document.getElementById('hb1');
-        const hb2 = document.getElementById('hb2');
-        const hb3 = document.getElementById('hb3');
-        hb1.style.transform = ''; hb2.style.opacity = '1'; hb3.style.transform = '';
+    function actualizarBannerBloqueo(locked, owner) {
+        var banner = document.getElementById('readonlyBanner');
+        var label  = document.getElementById('readonlyBannerLabel');
+        if (locked) {
+            banner.classList.add('show');
+            label.textContent = '🔒 TORNEO BLOQUEADO' + (owner ? ' por ' + owner : '');
+        } else {
+            banner.classList.remove('show');
+        }
     }
 
-    // Actualizar nombre del torneo en header
+    async function iniciarFlujoSupervisor() {
+        document.getElementById('roleSelectorView').classList.add('hidden');
+        document.getElementById('supervisorKeyView').classList.remove('hidden');
+        try {
+            var resp = await fetch(SCRIPT_URL + '?action=getSession&nocache=' + Date.now(), {redirect:'follow'});
+            var result = await resp.json();
+            var sess = result.data;
+            var hint = document.getElementById('supervisorKeyHint');
+            if (sess && sess.keyHash) hint.textContent = 'Ingresa la clave de ' + sess.owner;
+            else hint.textContent = 'No hay sesión activa. Crea una nueva.';
+        } catch(e){}
+    }
+
+    // CORRECCIÓN: ACCESO SUPERVISOR SIN PÉRDIDA DE DATOS
+    async function procesarClaveSupervisor() {
+        var nombre = (document.getElementById('supervisorNombre').value||'').trim();
+        var clave  = (document.getElementById('supervisorKey').value||'').trim();
+        if (!nombre || !clave) return;
+
+        var btn = document.getElementById('supervisorKeyBtn');
+        btn.disabled = true; btn.textContent = 'Verificando y Sincronizando...';
+
+        try {
+            var result = await gasWrite('openSession', {key: clave, owner: nombre});
+            if (result) {
+                SESSION_KEY   = clave;
+                SESSION_OWNER = nombre;
+                sessionStorage.setItem('supervisorSessionKey', clave);
+                sessionStorage.setItem('supervisorOwner', nombre);
+                
+                // CAMBIO CLAVE: Antes de activar el rol, bajamos la data de la nube
+                SYNC_ROLE = 'supervisor'; 
+                sessionStorage.setItem('syncRole', 'supervisor');
+                
+                await doPull(); // PULL FORZADO PARA UNIFICAR DATOS
+                
+                mostrarVistaSupervisorActivo(nombre, '', result.locked || false);
+                setRole('supervisor', false);
+            }
+        } catch(e) { showToast('Error: ' + e.message); }
+        finally { btn.disabled = false; btn.textContent = 'Ingresar como Supervisor'; }
+    }
+
+    async function toggleTournamentLock() {
+        if (!SESSION_KEY) return;
+        var newLocked = !TOURNAMENT_LOCKED;
+        try {
+            await gasWrite('lockTournament', {key: SESSION_KEY, locked: newLocked});
+            actualizarBtnCandado(newLocked);
+        } catch(e){}
+    }
+
+    function procesarSesionEnPull(session) {
+        if (!session) return;
+        TOURNAMENT_LOCKED = session.locked;
+        if (session.locked && SYNC_ROLE !== 'supervisor') document.body.classList.add('readonly-mode');
+        else if (!session.locked) applyRoleRestrictions();
+        actualizarBannerBloqueo(session.locked, session.owner);
+    }
+
+    async function cerrarSesionSupervisor() {
+        if (!confirm('¿Cerrar sesión?')) return;
+        try {
+            await gasWrite('closeSession', {key: SESSION_KEY});
+            sessionStorage.clear(); window.location.reload();
+        } catch(e){}
+    }
+
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobileMenu');
+        menu.classList.toggle('hidden');
+    }
+
+    function closeMobileMenu() {
+        document.getElementById('mobileMenu').classList.add('hidden');
+    }
+
     function updateHeaderTournamentName() {
         const tid = localStorage.getItem('selectedTournament') || 'ruleta';
-        const t = TOURNAMENTS[tid];
         const el = document.getElementById('headerTournamentName');
-        if (el && t) el.textContent = t.name;
+        if (el && TOURNAMENTS[tid]) el.textContent = TOURNAMENTS[tid].name;
     }
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(updateHeaderTournamentName, 500);
-    });
     </script>
 </body>
 </html>
