@@ -135,8 +135,9 @@
         body.readonly-mode #addButton { pointer-events:none; opacity:0.5; }
         body.readonly-mode .glass-card button:not(#syncBtn) { pointer-events:none; opacity:0.5; }
 
-        /* Operador — bloquear solo config, no tabla */
-        body.operator-mode [onclick*="openConfigModal"] { pointer-events:none !important; opacity:0.4 !important; }
+        /* Operador — LIBERADO para transmitir a la pantalla */
+        body.operator-mode [onclick*="openConfigModal"] { pointer-events:auto !important; opacity:1 !important; }
+        
         /* ═══ RESPONSIVE MÓVIL ════════════════════════════════════ */
 
         /* Tabla: reducir padding en móvil */
@@ -266,7 +267,7 @@
                     <input type="password" id="passwordInput" placeholder="Código de acceso" class="w-full p-2 border rounded-md pr-10">
                     <span class="toggle-password" onclick="togglePasswordVisibility('passwordInput', this)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                          <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.133 13.133 0 0 1 14.828 8z"/>
                           <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
                         </svg>
                     </span>
@@ -385,12 +386,7 @@
                     <button onclick="saveTournamentToFile()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-primary-fixed-dim/40 text-primary-fixed-dim hover:bg-primary-fixed-dim/10 transition-all text-xs font-label font-bold">
                         <span class="material-symbols-outlined text-sm">save</span> Guardar Torneo
                     </button>
-                    <button onclick="saveTournamentToSheets()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-[#00daf3]/40 text-[#00daf3] hover:bg-[#00daf3]/10 transition-all text-xs font-label font-bold">
-                        <span class="material-symbols-outlined text-sm">cloud_upload</span> Guardar en Sheets
-                    </button>
-                    <button onclick="openRecoverModal()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-[#e9c400]/40 text-[#e9c400] hover:bg-[#e9c400]/10 transition-all text-xs font-label font-bold">
-                        <span class="material-symbols-outlined text-sm">cloud_download</span> Recuperar Torneo
-                    </button>
+                    <!-- Los botones de Sheets y Recuperar se han movido para persistir en el panel principal -->
                     <button onclick="document.getElementById('loadTournamentInput').click()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-secondary-fixed-dim/40 text-secondary-fixed-dim hover:bg-secondary-fixed-dim/10 transition-all text-xs font-label font-bold">
                         <span class="material-symbols-outlined text-sm">upload_file</span> Cargar Torneo
                     </button>
@@ -416,9 +412,6 @@
                 </button>
                 <button onclick="exportToPDF({isFinalReport: false})" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all text-xs font-label font-bold">
                     <span class="material-symbols-outlined text-sm">picture_as_pdf</span> Exportar PDF
-                </button>
-                <button onclick="startFinal()" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-secondary-fixed-dim text-on-secondary font-headline font-bold text-xs hover:brightness-110 transition-all active:scale-95">
-                    <span class="material-symbols-outlined text-sm">sports_score</span> Iniciar Final
                 </button>
             </div>
         </div>
@@ -618,9 +611,25 @@
             <div class="glass-card rounded-xl border border-outline-variant/20 p-4 mb-3">
                 <div class="flex justify-between items-start sm:items-center mb-3 flex-wrap gap-2">
                     <h2 class="font-headline font-bold text-sm uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
-                        <span class="w-4 h-[2px] bg-primary-fixed-dim"></span> Añadir
+                        <span class="w-4 h-[2px] bg-primary-fixed-dim"></span> Gestión de Torneo
                     </h2>
                     <div class="flex flex-wrap gap-1.5">
+                        <!-- Botones movidos desde configuración para persistencia visual -->
+                        <button onclick="saveTournamentToSheets()" class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg border border-[#00daf3]/40 text-[#00daf3] hover:bg-[#00daf3]/10 transition-all text-xs font-label font-bold">
+                            <span class="material-symbols-outlined text-sm">cloud_upload</span>
+                            <span class="hidden sm:inline">Guardar Sheets</span>
+                        </button>
+                        <button onclick="openRecoverModal()" class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg border border-[#e9c400]/40 text-[#e9c400] hover:bg-[#e9c400]/10 transition-all text-xs font-label font-bold">
+                            <span class="material-symbols-outlined text-sm">cloud_download</span>
+                            <span class="hidden sm:inline">Recuperar</span>
+                        </button>
+                        <button onclick="startFinal()" class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-secondary-fixed-dim text-[#3a3000] hover:brightness-110 transition-all text-xs font-label font-bold">
+                            <span class="material-symbols-outlined text-sm">sports_score</span>
+                            <span class="hidden sm:inline">Iniciar Final</span>
+                        </button>
+                        
+                        <div class="w-px h-6 bg-outline-variant/30 mx-1 hidden sm:block"></div>
+
                         <button onclick="clearAllParticipants()" class="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all text-xs font-label font-bold">
                             <span class="material-symbols-outlined text-sm">delete_sweep</span>
                             <span class="hidden sm:inline">Limpiar</span>
@@ -667,7 +676,7 @@
                 <h1 class="font-headline font-black text-3xl text-red-400 uppercase tracking-tighter">⚡ Mesa Final</h1>
                 <div class="flex gap-2">
                     <button onclick="showClassificationView()" class="flex items-center gap-1 px-4 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:border-on-surface-variant text-sm font-label font-bold transition-all">
-                        <span class="material-symbols-outlined text-sm">arrow_back</span> Volver
+                        <span class="material-symbols-outlined text-sm">arrow_back</span> Volver a Planilla
                     </button>
                     <button onclick="declareWinners()" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-secondary-fixed-dim text-on-secondary font-headline font-bold text-sm hover:brightness-110 transition-all active:scale-95">
                         Declarar Ganadores <span class="material-symbols-outlined text-sm">arrow_forward</span>
@@ -1175,14 +1184,28 @@
     function showFinalView(){showView(finalView),localStorage.setItem("tournament_view_state","final"),renderFinalists()}
     function showWinnersView(){showView(winnersView),localStorage.setItem("tournament_view_state","winners"),renderWinners()}
     
-    // CORRECCIÓN FLUJO INICIAR FINAL
+    // CORRECCIÓN FLUJO INICIAR FINAL - AHORA PERSISTENTE
     async function startFinal(){
-        const e=document.getElementById("tournamentSelector").value,t=getClientesTorneo(e),o=TOURNAMENTS[e].playersPerTable,n=getBestEntryPerPlayer(t,e);
+        const e=document.getElementById("tournamentSelector").value;
+        const finalistsGuardados = getFinalists(e);
+        
+        // Si ya hay una final lanzada con puntajes, preguntamos si retomar o resetear
+        if(finalistsGuardados.length > 0) {
+            const opc = confirm("Ya existe una Mesa Final para este torneo con datos. ¿Deseas RETOMAR la final existente? (Aceptar para retomar, Cancelar para generar una NUEVA borrando la actual)");
+            if(opc) {
+                localStorage.setItem("tournament_view_state","final");
+                closeConfigModal();
+                showFinalView();
+                return;
+            }
+        }
+
+        const t=getClientesTorneo(e),o=TOURNAMENTS[e].playersPerTable,n=getBestEntryPerPlayer(t,e);
         if(n.length<o)return showToast(`Se necesitan al menos ${o} jugadores únicos para la final.`);
         const l=n.sort((t,o)=>calculateTotal(o,e)-calculateTotal(t,e)).slice(0,o),a=l.map(t=>({...t,...getTournamentRounds(e).reduce((e,o)=>({...e,[o.toLowerCase().replace(/ /g,"")]:""}),{})}));
         saveFinalists(e,a);
         localStorage.setItem("tournament_view_state","final"); // ESTADO PARA SYNC
-        showToast("Mesa final generada con puntajes en cero.",!0);
+        showToast("Mesa final generada.",!0);
         
         // CORRECCIONES SOLICITADAS
         closeConfigModal(); 
@@ -1218,7 +1241,18 @@
     }
 
     function renderWinners(){const e=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}"),t=document.getElementById("tournamentSelector").value,o=getFinalists(t),n=o.sort((e,o)=>calculateTotal(o,t)-calculateTotal(e,t)),l=document.getElementById("winnersList");l.innerHTML="";const a=[{prize:e.first||0,label:"1er Lugar",color:"bg-amber-400",emoji:"🥇"},{prize:e.second||0,label:"2do Lugar",color:"bg-slate-400",emoji:"🥈"},{prize:e.third||0,label:"3er Lugar",color:"bg-amber-600",emoji:"🥉"}];a.forEach((e,t)=>{n[t]&&(l.innerHTML+=`<div class="p-4 rounded-lg shadow-lg text-white ${e.color}"><div class="flex items-center justify-between"><div><p class="text-2xl font-bold">${e.emoji} ${e.label}</p><p class="text-xl">${n[t].nombre} ${n[t].apellido}</p></div><p class="text-3xl font-extrabold">$${parseInt(e.prize).toLocaleString("es-CL")}</p></div></div>`)})}
-    function updateFinalistScore(e,t,o){const n=document.getElementById("tournamentSelector").value;let l=getFinalists(n);l[e]&&(l[e][t]=o.replace(/\D/g,""),saveFinalists(n,l),renderFinalists())}
+    
+    // PERSISTENCIA TOTAL DE PUNTAJES EN MESA FINAL
+    function updateFinalistScore(e,t,o){
+        const n=document.getElementById("tournamentSelector").value;
+        let l=getFinalists(n);
+        if(l[e]){
+            l[e][t]=o.replace(/\D/g,""); // Guardamos el valor
+            saveFinalists(n,l); // Guardamos inmediatamente en LocalStorage
+            renderFinalists(); // Refrescamos la tabla
+            if (typeof onScoreChanged === 'function') onScoreChanged(); // Transmitimos el cambio
+        }
+    }
     
     // --- Lógica de Exportación a PDF con opción VIP ---
     function openVipReportModal(pdfOptions) {
@@ -1355,11 +1389,36 @@
     function saveEndTime(){localStorage.setItem("registrationEndTime",document.getElementById("registrationEndTime").value);showToast("Hora de cierre guardada.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
     function saveRouletteConfig(){localStorage.setItem("rouletteBallCount",document.getElementById("rouletteBallCount").value);renderClients(document.getElementById("tournamentSelector").value);initializeSortable();showToast("Configuración de ruleta guardada.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
     function saveGameLimits(){const e={minBet:document.getElementById("minBetInput").value.replace(/\./g,""),maxBet:document.getElementById("maxBetInput").value.replace(/\./g,""),minPleno:document.getElementById("minPlenoInput").value.replace(/\./g,""),maxPleno:document.getElementById("maxPlenoInput").value.replace(/\./g,"")};localStorage.setItem("gameLimits",JSON.stringify(e));showToast("Límites del juego guardados.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
-    function changeTournament(){const e=document.getElementById("tournamentSelector").value,t=TOURNAMENTS[e];localStorage.setItem("selectedTournament",e),document.getElementById("mainTournamentTitle").textContent=t.name;const headerEl=document.getElementById('headerTournamentName');if(headerEl)headerEl.textContent=t.name;const o=document.getElementById("pokerBlackjackConfig"),n=document.getElementById("rouletteLimitsConfig");o.classList.toggle("hidden","cards"!==t.type),n.classList.toggle("hidden","roulette"!==t.type),document.getElementById("rouletteConfig").classList.toggle("hidden","roulette"!==t.type),document.getElementById("chipConfigSection").classList.toggle("hidden","cards"!==t.type);const l=document.getElementById("tournamentDate").value;if(l){const[y,m,d]=l.split("-");const date=new Date(y,m-1,d);const formatted=date.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());document.getElementById("mainDateDisplay").textContent=`Fecha del Torneo: ${formatted}`}else{document.getElementById("mainDateDisplay").textContent="Fecha no definida"}selectedIndices=[],showClassificationView(),renderClients(e),initializeSortable()}
+    function changeTournament(){const e=document.getElementById("tournamentSelector").value,t=TOURNAMENTS[e];localStorage.setItem("selectedTournament",e),document.getElementById("mainTournamentTitle").textContent=t.name;const headerEl=document.getElementById('headerTournamentName');if(headerEl)headerEl.textContent=t.name;const o=document.getElementById("pokerBlackjackConfig"),n=document.getElementById("rouletteLimitsConfig");o.classList.toggle("hidden","cards"!==t.type),n.classList.toggle("hidden","roulette"!==t.type),document.getElementById("rouletteConfig").classList.toggle("hidden","roulette"!==t.type),document.getElementById("chipConfigSection").classList.toggle("hidden","cards"!==t.type);const l=document.getElementById("tournamentDate").value;if(l){const[y,m,d]=l.split("-");const date=new Date(y,m-1,d);const formatted=date.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());document.getElementById("mainDateDisplay").textContent=`Fecha del Torneo: ${formatted}`}else{document.getElementById("mainDateDisplay").textContent="Fecha no definida"}selectedIndices=[],showClassificationView(),renderClients(e),initializeSortable();if(typeof onConfigChanged==='function')onConfigChanged();}
+    
+    // ══════════════════════════════════════════════════════════════
+    // PERSISTENCIA DE ESTADO Y CARGA INICIAL (PROTEGIDA TOTALMENTE)
+    // ══════════════════════════════════════════════════════════════
     document.addEventListener("DOMContentLoaded",()=>{
-        const e=document.getElementById("tournamentSelector");Object.keys(TOURNAMENTS).forEach(t=>e.add(new Option(TOURNAMENTS[t].name,t))),e.value=localStorage.getItem("selectedTournament")||"ruleta",document.getElementById("tournamentDate").value=localStorage.getItem("tournamentDate")||(new Date).toISOString().split("T")[0],document.getElementById("tournamentDirector").value=localStorage.getItem("tournamentDirector")||"";const t=document.getElementById("prizePoolInput");t.value=formatNumberForDisplay(localStorage.getItem("prizePool"));const o=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}");document.getElementById("firstPrize").value=formatNumberForDisplay(o.first),document.getElementById("secondPrize").value=formatNumberForDisplay(o.second),document.getElementById("thirdPrize").value=formatNumberForDisplay(o.third);const n=getGameLimits();document.getElementById("minBetInput").value=formatNumberForDisplay(n.minBet),document.getElementById("maxBetInput").value=formatNumberForDisplay(n.maxBet),document.getElementById("minPlenoInput").value=formatNumberForDisplay(n.minPleno),document.getElementById("maxPlenoInput").value=formatNumberForDisplay(n.maxPleno),document.getElementById("registrationEndTime").value=localStorage.getItem("registrationEndTime")||"",document.getElementById("rouletteBallCount").value=localStorage.getItem("rouletteBallCount")||"3",localStorage.setItem("tournament_view_state","classification"),changeTournament();
+        const e=document.getElementById("tournamentSelector");Object.keys(TOURNAMENTS).forEach(t=>e.add(new Option(TOURNAMENTS[t].name,t))),e.value=localStorage.getItem("selectedTournament")||"ruleta",document.getElementById("tournamentDate").value=localStorage.getItem("tournamentDate")||(new Date).toISOString().split("T")[0],document.getElementById("tournamentDirector").value=localStorage.getItem("tournamentDirector")||"";const t=document.getElementById("prizePoolInput");t.value=formatNumberForDisplay(localStorage.getItem("prizePool"));const o=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}");document.getElementById("firstPrize").value=formatNumberForDisplay(o.first),document.getElementById("secondPrize").value=formatNumberForDisplay(o.second),document.getElementById("thirdPrize").value=formatNumberForDisplay(o.third);const n=getGameLimits();document.getElementById("minBetInput").value=formatNumberForDisplay(n.minBet),document.getElementById("maxBetInput").value=formatNumberForDisplay(n.maxBet),document.getElementById("minPlenoInput").value=formatNumberForDisplay(n.minPleno),document.getElementById("maxPlenoInput").value=formatNumberForDisplay(n.maxPleno),document.getElementById("registrationEndTime").value=localStorage.getItem("registrationEndTime")||"",document.getElementById("rouletteBallCount").value=localStorage.getItem("rouletteBallCount")||"3",
         
-        // Listen for Enter key on password fields
+        // REFRESCAR CONFIGURACIÓN
+        changeTournament();
+
+        // PERSISTENCIA DE ROL (OPERADOR TAMBIÉN PERSISTE) Y VISTA
+        const savedRole = localStorage.getItem('syncRole');
+        const savedView = localStorage.getItem("tournament_view_state") || "classification";
+
+        if (savedRole && savedRole !== 'off') {
+            setRole(savedRole, true);
+        } else {
+            mostrarModalRolObligatorio();
+        }
+
+        if (savedView === "final") {
+            showFinalView(); // renderFinalists() lee de localStorage y restaura puntajes inmediatamente
+        } else if (savedView === "winners") {
+            showWinnersView();
+        } else {
+            showClassificationView();
+        }
+
+        // Listeners adicionales
         document.getElementById('passwordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); checkPassword(); }});
         document.getElementById('confirmNewPasswordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); changePassword(); }});
         document.getElementById('masterCodeInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); resetPassword(); }});
@@ -1461,376 +1520,17 @@
         getClientesFromSheet();
     });
 
-    // === SISTEMA DE AYUDA ===
-    const HELP_STEPS = [
-        {
-            title: '1. Visión general de la planilla',
-            icon: '🏠',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">¿Qué es esta pantalla?</h3>
-                <p class="mb-3">Esta es la <strong>Planilla de Torneos</strong>. Desde aquí se gestiona todo el torneo: inscripción de participantes, configuración de premios, generación de la mesa final y declaración de ganadores.</p>
-                <h3 class="font-bold text-blue-800 text-base mb-2">Elementos principales:</h3>
-                <ul class="list-disc pl-5 space-y-1">
-                    <li><strong>Base de Datos</strong> (botón arriba izquierda): accede al listado general de clientes del casino.</li>
-                    <li><strong>Ver Torneo</strong> (botón arriba derecha): abre la pantalla pública del torneo que ven los clientes.</li>
-                    <li><strong>Título y fecha</strong>: muestran el torneo activo y la fecha configurada.</li>
-                    <li><strong>Estadísticas</strong>: jugadores únicos, cupones sorteo (CS) y tickets canje (TC) registrados.</li>
-                    <li><strong>Tabla de participantes</strong>: lista todos los inscritos en el torneo actual.</li>
-                </ul>
-            `
-        },
-        {
-            title: '2. Configurar el torneo',
-            icon: '⚙️',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Antes de comenzar, configura el torneo</h3>
-                <p class="mb-3">Presiona el botón <strong>Configuración ⚙️</strong> para abrir el panel. Dentro encontrarás:</p>
-                <ul class="list-disc pl-5 space-y-2">
-                    <li><strong>Seleccionar Torneo:</strong> elige entre Ruleta, Blackjack, Draw Poker y sus versiones VIP.</li>
-                    <li><strong>Fecha:</strong> ingresa la fecha del torneo y presiona <em>✔ Aplicar</em>. Esta fecha no cambiará automáticamente al pasar la medianoche.</li>
-                    <li><strong>Hora de Cierre de Inscripción:</strong> define a qué hora se cierran las inscripciones. La pantalla del torneo mostrará un contador de advertencia 20 minutos antes.</li>
-                    <li><strong>Nombre del Encargado:</strong> aparece en los informes PDF.</li>
-                    <li><strong>Premios:</strong> define el pozo total, 1er, 2do y 3er lugar.</li>
-                    <li><strong>Límites del juego:</strong> apuesta mínima y máxima (se muestra en la pantalla del torneo).</li>
-                    <li><strong>Fichas:</strong> solo para torneos de cartas. Agrega las fichas con su color y valor.</li>
-                </ul>
-            `
-        },
-        {
-            title: '3. Añadir participantes',
-            icon: '➕',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Cómo inscribir a un jugador</h3>
-                <ol class="list-decimal pl-5 space-y-2">
-                    <li>Escribe el <strong>Nombre</strong> del participante en el campo de búsqueda. Aparecerá una lista con los clientes que coincidan en la base de datos.</li>
-                    <li>Si el cliente <strong>aparece en la lista</strong>: haz clic sobre su nombre. El sistema llenará los datos automáticamente y no pedirá RUT (ya lo tiene guardado).</li>
-                    <li>Si el cliente <strong>no aparece</strong>: escribe también el Apellido. Aparecerá el campo RUT para ingresarlo manualmente. El sistema lo registrará automáticamente en la base de datos.</li>
-                    <li>Selecciona el <strong>Tipo de entrada</strong>: Ninguno, Cupón Sorteo (CS) o Ticket Canje (TC).</li>
-                    <li>Presiona <strong>Añadir</strong>.</li>
-                </ol>
-                <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3 text-yellow-800 text-xs">
-                    ⚠️ Cada jugador puede inscribirse máximo <strong>2 veces</strong> por torneo, y solo puede usar 1 CS y 1 TC.
-                </div>
-            `
-        },
-        {
-            title: '4. Gestionar la tabla de participantes',
-            icon: '📋',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Acciones sobre los participantes inscritos</h3>
-                <ul class="list-disc pl-5 space-y-2">
-                    <li><strong>Cambiar color de mesa:</strong> haz clic en el círculo de color de un participante para asignarle una mesa visualmente.</li>
-                    <li><strong>Editar tipo de entrada:</strong> presiona el ícono ✏️ para cambiar si tiene CS, TC o ninguno.</li>
-                    <li><strong>Eliminar participante:</strong> presiona el ícono 🗑️ de la fila correspondiente.</li>
-                    <li><strong>Reordenar:</strong> selecciona participantes con el checkbox y arrástralos para cambiar su posición en la lista.</li>
-                    <li><strong>Agregar separador de mesa:</strong> el botón <em>+ Mesa</em> inserta una línea divisoria entre grupos de jugadores.</li>
-                    <li><strong>Ver datos del cliente:</strong> haz clic en el nombre o RUT para ver su información completa.</li>
-                </ul>
-                <div class="mt-3 bg-blue-50 border border-blue-200 rounded p-3 text-blue-800 text-xs">
-                    💡 Los colores de mesa se ven reflejados en tiempo real en la pantalla del torneo.
-                </div>
-            `
-        },
-        {
-            title: '5. Ingresar puntajes (Ruleta)',
-            icon: '🎡',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Para torneos de Ruleta</h3>
-                <p class="mb-3">Cada participante tiene columnas de puntaje por bolita (Bolita 1, Bolita 2, etc., según la cantidad configurada).</p>
-                <ol class="list-decimal pl-5 space-y-2">
-                    <li>Haz clic directamente en la celda de puntaje del jugador.</li>
-                    <li>Escribe el valor obtenido en esa bolita.</li>
-                    <li>El <strong>Total</strong> se calcula automáticamente sumando todas las bolitas.</li>
-                    <li>El sistema guarda el puntaje al instante — no necesitas presionar ningún botón extra.</li>
-                </ol>
-                <div class="mt-3 bg-green-50 border border-green-200 rounded p-3 text-green-800 text-xs">
-                    ✅ La pantalla del torneo se actualiza automáticamente con los puntajes ingresados.
-                </div>
-            `
-        },
-        {
-            title: '6. Ingresar puntajes (Poker / Blackjack)',
-            icon: '🃏',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Para torneos de cartas</h3>
-                <p class="mb-3">El funcionamiento es el mismo que en ruleta, pero con una sola columna de <strong>Puntaje</strong> por participante.</p>
-                <ol class="list-decimal pl-5 space-y-2">
-                    <li>Haz clic en la celda de puntaje del jugador.</li>
-                    <li>Ingresa el puntaje obtenido en la ronda.</li>
-                    <li>El total se actualiza automáticamente.</li>
-                </ol>
-                <p class="mt-3">En la pantalla del torneo, los primeros lugares (según el número configurado de finalistas) aparecen resaltados en <span class="text-green-700 font-bold">verde</span> indicando que clasifican a la mesa final.</p>
-            `
-        },
-        {
-            title: '7. Iniciar la Mesa Final',
-            icon: '🏁',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Cuando se termina la clasificación</h3>
-                <p class="mb-3">Una vez que todos los participantes tienen su puntaje, se puede generar la Mesa Final.</p>
-                <ol class="list-decimal pl-5 space-y-2">
-                    <li>Ve a <strong>Configuración ⚙️</strong> → sección <em>Acciones del Torneo</em>.</li>
-                    <li>Presiona <strong>Iniciar Final</strong>. El sistema selecciona automáticamente a los mejores jugadores según el número de finalistas configurado.</li>
-                    <li>Se genera un <strong>PDF de clasificación</strong> automáticamente.</li>
-                    <li>La vista cambia a la <strong>Mesa Final</strong>, donde puedes ingresar los puntajes de la ronda final.</li>
-                </ol>
-                <div class="mt-3 bg-orange-50 border border-orange-200 rounded p-3 text-orange-800 text-xs">
-                    ⚠️ Una vez iniciada la final, los puntajes de clasificación quedan bloqueados.
-                </div>
-            `
-        },
-        {
-            title: '8. Declarar Ganadores',
-            icon: '🏆',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Al finalizar la Mesa Final</h3>
-                <ol class="list-decimal pl-5 space-y-2">
-                    <li>Ingresa los puntajes finales de cada finalista en la tabla de Mesa Final.</li>
-                    <li>Presiona <strong>Declarar Ganadores →</strong>.</li>
-                    <li>El sistema calcula automáticamente los 3 primeros lugares y muestra el <strong>podio de ganadores</strong> con sus premios.</li>
-                    <li>Se genera el <strong>PDF del Acta de Ganadores</strong> automáticamente.</li>
-                    <li>La pantalla del torneo muestra el podio en modo público.</li>
-                </ol>
-                <div class="mt-3 bg-amber-50 border border-amber-200 rounded p-3 text-amber-800 text-xs">
-                    🥇 Los premios mostrados son los configurados previamente en <em>Configuración → Premios</em>.
-                </div>
-            `
-        },
-        {
-            title: '9. Guardar y cargar torneo',
-            icon: '💾',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">Respaldo y restauración</h3>
-                <p class="mb-3">Desde <strong>Configuración ⚙️</strong> → sección <em>Archivos</em>:</p>
-                <ul class="list-disc pl-5 space-y-2">
-                    <li><strong>Guardar Torneo:</strong> descarga un archivo <code>.json</code> con toda la información del torneo actual (participantes, puntajes, configuración). Ideal para respaldo.</li>
-                    <li><strong>Cargar Torneo:</strong> restaura un torneo previamente guardado desde un archivo <code>.json</code>. Reemplaza todos los datos actuales.</li>
-                    <li><strong>Guardar Base (Sheets):</strong> descarga la base de datos de clientes desde Google Sheets en formato <code>.json</code>.</li>
-                    <li><strong>Exportar PDF:</strong> genera el informe de participantes del torneo actual en cualquier momento.</li>
-                </ul>
-                <div class="mt-3 bg-blue-50 border border-blue-200 rounded p-3 text-blue-800 text-xs">
-                    💡 Se recomienda guardar el torneo al finalizar cada etapa (clasificación y final).
-                </div>
-            `
-        },
-        {
-            title: '10. Pantalla del torneo',
-            icon: '📺',
-            content: `
-                <h3 class="font-bold text-blue-800 text-base mb-2">La pantalla que ven los clientes</h3>
-                <p class="mb-3">Presiona <strong>Ver Torneo</strong> (arriba a la derecha) para abrir la pantalla pública. Esta pantalla muestra:</p>
-                <ul class="list-disc pl-5 space-y-2">
-                    <li>Nombre del torneo, fecha y reloj en tiempo real.</li>
-                    <li>Tarjetas con premios, inscripciones y fichas.</li>
-                    <li>Tabla de clasificación actualizada en tiempo real.</li>
-                </ul>
-                <h3 class="font-bold text-blue-800 text-base mt-3 mb-2">Controles desde Configuración:</h3>
-                <ul class="list-disc pl-5 space-y-1">
-                    <li><strong>Pantalla Completa:</strong> envía el comando de pantalla completa a la pantalla del torneo.</li>
-                    <li><strong>Modo Oscuro / Claro:</strong> cambia el tema visual de la pantalla del torneo.</li>
-                </ul>
-                <div class="mt-3 bg-green-50 border border-green-200 rounded p-3 text-green-800 text-xs">
-                    ✅ La pantalla del torneo se actualiza automáticamente cuando se hacen cambios en la planilla.
-                </div>
-            `
-        }
-    ];
-
-    let helpCurrentStep = 0;
-
-    function openHelpModal() {
-        helpCurrentStep = 0;
-        renderHelpIndex();
-        renderHelpStep();
-        document.getElementById('helpModal').style.display = 'flex';
-    }
-
-    function closeHelpModal() {
-        document.getElementById('helpModal').style.display = 'none';
-    }
-
-    function renderHelpIndex() {
-        const container = document.getElementById('helpIndex');
-        container.innerHTML = HELP_STEPS.map((step, i) =>
-            `<button onclick="goToHelpStep(${i})" class="text-xs px-2 py-1 rounded-full border font-medium transition-colors ${i === helpCurrentStep ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}">${step.icon} ${i + 1}</button>`
-        ).join('');
-    }
-
-    function renderHelpStep() {
-        const step = HELP_STEPS[helpCurrentStep];
-        document.getElementById('helpContent').innerHTML = `
-            <h3 class="font-extrabold text-blue-900 text-lg mb-3">${step.icon} ${step.title}</h3>
-            ${step.content}
-        `;
-        document.getElementById('helpStepIndicator').textContent = `Paso ${helpCurrentStep + 1} de ${HELP_STEPS.length}`;
-        document.getElementById('helpPrevBtn').disabled = helpCurrentStep === 0;
-        document.getElementById('helpNextBtn').textContent = helpCurrentStep === HELP_STEPS.length - 1 ? '✓ Cerrar' : 'Siguiente →';
-        renderHelpIndex();
-    }
-
-    function goToHelpStep(index) {
-        helpCurrentStep = index;
-        renderHelpStep();
-    }
-
-    function helpPrev() {
-        if (helpCurrentStep > 0) { helpCurrentStep--; renderHelpStep(); }
-    }
-
-    function helpNext() {
-        if (helpCurrentStep < HELP_STEPS.length - 1) { helpCurrentStep++; renderHelpStep(); }
-        else closeHelpModal();
-    }
-
-    // === GUARDAR / RECUPERAR TORNEO EN SHEETS ===
-
-    async function saveTournamentToSheets() {
-        const btn = document.querySelector('[onclick*="saveTournamentToSheets"]');
-        if (btn) { btn._orig = btn.innerHTML; btn.disabled = true; btn.classList.add('btn-loading'); btn.innerHTML = `<span class="btn-text">${btn._orig}</span>`; }
-        try {
-            const tournamentId = document.getElementById('tournamentSelector').value;
-            const tournamentData = {
-                version: '2.1',
-                tournamentType: tournamentId,
-                tournamentViewState: localStorage.getItem("tournament_view_state") || "classification",
-                date: localStorage.getItem('tournamentDate') || '',
-                director: localStorage.getItem('tournamentDirector') || '',
-                endTime: localStorage.getItem('registrationEndTime') || '',
-                prizePool: localStorage.getItem('prizePool') || '0',
-                prizes: JSON.parse(localStorage.getItem('tournamentPrizes') || '{}'),
-                limits: getGameLimits(),
-                chips: getChips(),
-                rouletteBallCount: localStorage.getItem('rouletteBallCount') || '3',
-                clients: getClientesTorneo(tournamentId),
-                finalists: getFinalists(tournamentId)
-            };
-            const result = await fetchFromSheet('saveTournament', tournamentData);
-            if (result) showToast(`✅ Torneo guardado en Sheets: ${result.sheetName}`, true);
-        } catch(err) {
-            showToast('Error al guardar en Sheets: ' + err.message);
-        } finally {
-            if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); btn.innerHTML = btn._orig; }
-        }
-    }
-
-    async function openRecoverModal() {
-        document.getElementById('recoverModal').style.display = 'flex';
-        const listEl = document.getElementById('recoverList');
-        listEl.innerHTML = '<p class="text-center text-on-surface-variant text-sm py-6 font-label">Cargando...</p>';
-        try {
-            const list = await fetchFromSheet('listTournaments', {});
-            if (!list || list.length === 0) {
-                listEl.innerHTML = '<p class="text-center text-on-surface-variant text-sm py-6 font-label">No hay torneos guardados en Sheets.</p>';
-                return;
-            }
-            list.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
-            const TOURNAMENT_NAMES = {
-                ruleta: 'Ruleta', draw_poker: 'Draw Poker', blackjack: 'Blackjack',
-                ruleta_vip: 'Ruleta VIP', draw_poker_vip: 'Draw Poker VIP', blackjack_vip: 'Blackjack VIP'
-            };
-            listEl.innerHTML = list.map(t => `
-                <div class="flex items-center justify-between p-3 rounded-lg bg-[#1a1b22] border border-[#4a5568]/40 hover:border-[#e9c400]/40 transition-all">
-                    <div>
-                        <p class="font-headline font-bold text-sm text-on-surface">${TOURNAMENT_NAMES[t.tournamentType] || t.tournamentType}</p>
-                        <p class="text-xs font-label text-on-surface-variant mt-0.5">
-                            📅 ${t.date} &nbsp;·&nbsp; 👤 ${t.director || 'Sin encargado'} &nbsp;·&nbsp; 🎮 ${t.players} jugadores
-                        </p>
-                        <p class="text-[10px] font-label text-[#4a5568] mt-0.5">Guardado: ${t.savedAt}</p>
-                    </div>
-                    <button onclick="recoverTournament('${t.sheetName}')" 
-                        class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#e9c400] text-[#3a3000] font-label font-bold text-xs hover:brightness-110 transition-all active:scale-95 ml-3 whitespace-nowrap">
-                        <span class="material-symbols-outlined text-sm">restore</span> Cargar
-                    </button>
-                </div>
-            `).join('');
-        } catch(err) {
-            listEl.innerHTML = `<p class="text-center text-red-400 text-sm py-6 font-label">Error: ${err.message}</p>`;
-        }
-    }
-
-    function closeRecoverModal() {
-        document.getElementById('recoverModal').style.display = 'none';
-    }
-
-    async function recoverTournament(sheetName) {
-        if (!confirm(`¿Cargar el torneo "${sheetName}"? Se reemplazarán los datos actuales de este torneo.`)) return;
-        closeRecoverModal();
-        showToast('Recuperando torneo desde Sheets...', true);
-        try {
-            const url = `${SCRIPT_URL}?action=getTournament&sheetName=${encodeURIComponent(sheetName)}&nocache=${Date.now()}`;
-            const response = await fetch(url, { redirect: 'follow' });
-            const result = await response.json();
-            if (result.status === 'error') throw new Error(result.message);
-            const o = result.data;
-            let n = (o.clients || []);
-            const mapEntry = e => {
-                if (e.hasOwnProperty('cuponTorneo')) { e.cuponSorteo = e.cuponTorneo; delete e.cuponTorneo; }
-                if (e.hasOwnProperty('cuponCanjeo')) { e.ticketCanje = e.cuponCanjeo; delete e.cuponCanjeo; }
-                return e;
-            };
-            n = n.map(mapEntry);
-            let finalists = (o.finalists || []).map(mapEntry);
-            const t = o.tournamentType;
-            localStorage.setItem('selectedTournament', t);
-            localStorage.setItem('tournamentDate', o.date || '');
-            localStorage.setItem('tournamentDirector', o.director || '');
-            localStorage.setItem('registrationEndTime', o.endTime || '');
-            localStorage.setItem('prizePool', o.prizePool || '0');
-            localStorage.setItem('tournamentPrizes', JSON.stringify(o.prizes || {}));
-            localStorage.setItem('gameLimits', JSON.stringify(o.limits || {}));
-            localStorage.setItem('rouletteBallCount', o.rouletteBallCount || '3');
-            if(o.tournamentViewState) localStorage.setItem("tournament_view_state", o.tournamentViewState);
-            saveChips(o.chips || []);
-            saveClientesTorneo(t, n);
-            saveFinalists(t, finalists);
-            document.getElementById('tournamentSelector').value = t;
-            document.getElementById('tournamentDate').value = o.date || new Date().toISOString().split("T")[0];
-            document.getElementById('tournamentDirector').value = o.director || '';
-            const prizes = o.prizes || {};
-            document.getElementById('prizePoolInput').value = formatNumberForDisplay(o.prizePool);
-            document.getElementById('firstPrize').value = formatNumberForDisplay(prizes.first);
-            document.getElementById('secondPrize').value = formatNumberForDisplay(prizes.second);
-            document.getElementById('thirdPrize').value = formatNumberForDisplay(prizes.third);
-            const limits = o.limits || {};
-            document.getElementById('minBetInput').value = formatNumberForDisplay(limits.minBet);
-            document.getElementById('maxBetInput').value = formatNumberForDisplay(limits.maxBet);
-            document.getElementById('minPlenoInput').value = formatNumberForDisplay(limits.minPleno);
-            document.getElementById('maxPlenoInput').value = formatNumberForDisplay(limits.maxPleno);
-            document.getElementById('rouletteBallCount').value = o.rouletteBallCount || '3';
-            showToast('✅ Torneo recuperado correctamente.', true);
-            closeConfigModal();
-            changeTournament();
-            // Refrescar vista
-            if(o.tournamentViewState === "final") showFinalView();
-            else if(o.tournamentViewState === "winners") showWinnersView();
-            else showClassificationView();
-        } catch(err) {
-            showToast('Error al recuperar torneo: ' + err.message);
-        }
-    }
-
-
     // ═══════════════════════════════════════════════════════════
     // SISTEMA DE SYNC — Siempre activo, rol obligatorio
     // ═══════════════════════════════════════════════════════════
 
-    var SYNC_ROLE = sessionStorage.getItem('syncRole') || 'off';
+    var SYNC_ROLE = localStorage.getItem('syncRole') || 'off'; // LOCALSTORAGE PARA PERSISTENCIA
     var syncPullInterval = null;
     var syncPushTimer = null;
     var lastPushTime = 0;
     var lastSyncTimestamp = '';
     var lastNotifiedTimestamp = '';
     var syncNotifications = [];
-
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            if (SYNC_ROLE !== 'off') {
-                setRole(SYNC_ROLE, true); 
-            } else {
-                mostrarModalRolObligatorio();
-            }
-        }, 800);
-    });
 
     function mostrarModalRolObligatorio() {
         var m = document.getElementById('roleModal');
@@ -1919,8 +1619,9 @@
         } else if (SYNC_ROLE==='operador'){
             body.classList.add('operator-mode');
             if(banner){banner.classList.add('show');if(bannerLabel)bannerLabel.textContent='🎮 OPERADOR';}
+            // MODIFICACIÓN: EL OPERADOR YA NO TIENE BLOQUEADA LA CONFIGURACIÓN
             document.querySelectorAll('[onclick*="openConfigModal"]').forEach(function(b){
-                b.setAttribute('disabled','');b.style.opacity='0.4';b.style.pointerEvents='none';
+                b.removeAttribute('disabled');b.style.opacity='';b.style.pointerEvents='';
             });
         } else {
             document.querySelectorAll('[onclick*="openConfigModal"]').forEach(function(b){
@@ -1955,7 +1656,7 @@
 
     function setRole(role, silent) {
         SYNC_ROLE = role;
-        sessionStorage.setItem('syncRole', role);
+        localStorage.setItem('syncRole', role); // PERSISTENCIA DEL ROL EN DISCO
         if (syncPullInterval){clearInterval(syncPullInterval);syncPullInterval=null;}
         clearTimeout(syncPushTimer);syncPushTimer=null;
         lastPushTime=0;lastSyncTimestamp='';lastNotifiedTimestamp='';
@@ -2019,7 +1720,7 @@
         if(s.clients)   raw.call(localStorage,'clientes_'+tid,    JSON.stringify(s.clients));
         if(s.finalists) raw.call(localStorage,'finalistas_'+tid,  JSON.stringify(s.finalists));
 
-        // CORRECCIÓN: Aplicar estado de vista remoto
+        // Aplicar estado de vista remoto
         if(s.tournamentViewState){
             raw.call(localStorage, "tournament_view_state", s.tournamentViewState);
             if(s.tournamentViewState === "final") showFinalView();
@@ -2145,14 +1846,13 @@
         syncLog('🗑️ '+nombre,'#ef4444');
         schedulePush({type:'delete',description:nombre+' eliminado',by:SYNC_ROLE,at:Date.now()});
     }
-    function onScoreChanged(){ schedulePush(null); }
+    function onScoreChanged(){ schedulePush({type:'score',description:'Puntaje actualizado',by:SYNC_ROLE,at:Date.now()}); }
     function onConfigChanged(){
-        if(SYNC_ROLE==='supervisor')
-            schedulePush({type:'config',description:'Configuración actualizada',by:'supervisor',at:Date.now()});
+        schedulePush({type:'config',description:'Configuración actualizada',by:SYNC_ROLE,at:Date.now()});
     }
 
-    var SESSION_KEY   = sessionStorage.getItem('supervisorSessionKey') || '';
-    var SESSION_OWNER = sessionStorage.getItem('supervisorOwner') || '';
+    var SESSION_KEY   = localStorage.getItem('supervisorSessionKey') || '';
+    var SESSION_OWNER = localStorage.getItem('supervisorOwner') || '';
     var TOURNAMENT_LOCKED = false;
 
     function simpleHash(str) {
@@ -2224,7 +1924,6 @@
         } catch(e){}
     }
 
-    // CORRECCIÓN: ACCESO SUPERVISOR SIN PÉRDIDA DE DATOS
     async function procesarClaveSupervisor() {
         var nombre = (document.getElementById('supervisorNombre').value||'').trim();
         var clave  = (document.getElementById('supervisorKey').value||'').trim();
@@ -2238,15 +1937,11 @@
             if (result) {
                 SESSION_KEY   = clave;
                 SESSION_OWNER = nombre;
-                sessionStorage.setItem('supervisorSessionKey', clave);
-                sessionStorage.setItem('supervisorOwner', nombre);
-                
-                // CAMBIO CLAVE: Antes de activar el rol, bajamos la data de la nube
+                localStorage.setItem('supervisorSessionKey', clave);
+                localStorage.setItem('supervisorOwner', nombre);
                 SYNC_ROLE = 'supervisor'; 
-                sessionStorage.setItem('syncRole', 'supervisor');
-                
-                await doPull(); // PULL FORZADO PARA UNIFICAR DATOS
-                
+                localStorage.setItem('syncRole', 'supervisor');
+                await doPull(); 
                 mostrarVistaSupervisorActivo(nombre, '', result.locked || false);
                 setRole('supervisor', false);
             }
@@ -2275,7 +1970,10 @@
         if (!confirm('¿Cerrar sesión?')) return;
         try {
             await gasWrite('closeSession', {key: SESSION_KEY});
-            sessionStorage.clear(); window.location.reload();
+            localStorage.removeItem('supervisorSessionKey');
+            localStorage.removeItem('supervisorOwner');
+            localStorage.removeItem('syncRole');
+            window.location.reload();
         } catch(e){}
     }
 
@@ -2293,6 +1991,154 @@
         const el = document.getElementById('headerTournamentName');
         if (el && TOURNAMENTS[tid]) el.textContent = TOURNAMENTS[tid].name;
     }
+    
+    function updateFinalistScore(e,t,o){
+        const n=document.getElementById("tournamentSelector").value;
+        let l=getFinalists(n);
+        if(l[e]){
+            l[e][t]=o.replace(/\D/g,"");
+            saveFinalists(n,l);
+            renderFinalists();
+            // TRANSMISIÓN AUTOMÁTICA
+            onScoreChanged();
+        }
+    }
+    
+    // PDF Y MAS FUNCIONES RESTAURADAS
+    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+    function closeVipReportModal() { document.getElementById('vipReportModal').style.display = 'none'; }
+    function closeRecoverModal() { document.getElementById('recoverModal').style.display = 'none'; }
+    function closeColorModal() { document.getElementById('colorModal').style.display = 'none'; }
+
+    // ══════════════════════════════════════════════════════════════
+    // PERSISTENCIA DE ESTADO Y CARGA INICIAL (PROTEGIDA TOTALMENTE)
+    // ══════════════════════════════════════════════════════════════
+    document.addEventListener("DOMContentLoaded",()=>{
+        const e=document.getElementById("tournamentSelector");Object.keys(TOURNAMENTS).forEach(t=>e.add(new Option(TOURNAMENTS[t].name,t))),e.value=localStorage.getItem("selectedTournament")||"ruleta",document.getElementById("tournamentDate").value=localStorage.getItem("tournamentDate")||(new Date).toISOString().split("T")[0],document.getElementById("tournamentDirector").value=localStorage.getItem("tournamentDirector")||"";const t=document.getElementById("prizePoolInput");t.value=formatNumberForDisplay(localStorage.getItem("prizePool"));const o=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}");document.getElementById("firstPrize").value=formatNumberForDisplay(o.first),document.getElementById("secondPrize").value=formatNumberForDisplay(o.second),document.getElementById("thirdPrize").value=formatNumberForDisplay(o.third);const n=getGameLimits();document.getElementById("minBetInput").value=formatNumberForDisplay(n.minBet),document.getElementById("maxBetInput").value=formatNumberForDisplay(n.maxBet),document.getElementById("minPlenoInput").value=formatNumberForDisplay(n.minPleno),document.getElementById("maxPlenoInput").value=formatNumberForDisplay(n.maxPleno),document.getElementById("registrationEndTime").value=localStorage.getItem("registrationEndTime")||"",document.getElementById("rouletteBallCount").value=localStorage.getItem("rouletteBallCount")||"3",
+        
+        // REFRESCAR CONFIGURACIÓN
+        changeTournament();
+
+        // PERSISTENCIA DE ROL (LOCALSTORAGE PARA OPERADOR/SUPERVISOR) Y VISTA
+        const savedRole = localStorage.getItem('syncRole');
+        const savedView = localStorage.getItem("tournament_view_state") || "classification";
+
+        if (savedRole && savedRole !== 'off') {
+            setRole(savedRole, true);
+        } else {
+            mostrarModalRolObligatorio();
+        }
+
+        if (savedView === "final") {
+            showFinalView(); // renderFinalists() lee de localStorage y restaura puntajes inmediatamente
+        } else if (savedView === "winners") {
+            showWinnersView();
+        } else {
+            showClassificationView();
+        }
+
+        // Listen for Enter key on password fields
+        document.getElementById('passwordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); checkPassword(); }});
+        document.getElementById('confirmNewPasswordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); changePassword(); }});
+        document.getElementById('masterCodeInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); resetPassword(); }});
+
+        document.getElementById("addNombre").addEventListener("input", async (e) => {
+            const raw = e.target.value;
+            const resultsContainer = document.getElementById("searchResults");
+            resultsContainer.innerHTML = "";
+            document.getElementById("addRut").classList.add("hidden");
+            selectedClientRut = null;
+
+            const makeItem = (html, onClick) => {
+                const div = document.createElement("div");
+                div.style.cssText = "padding:10px 14px;cursor:pointer;color:#e3e1ea;font-family:Inter,sans-serif;font-size:0.85rem;border-bottom:1px solid rgba(74,85,104,0.3);transition:background 0.15s;";
+                div.innerHTML = html;
+                div.onmouseenter = () => div.style.background = 'rgba(0,218,243,0.1)';
+                div.onmouseleave = () => div.style.background = '';
+                div.onclick = onClick;
+                return div;
+            };
+
+            // Detectar RUT
+            const isRut = /^[\d\.\-kK]+$/.test(raw) && raw.replace(/[^\dkK]/g, '').length >= 1;
+
+            if (isRut) {
+                let clean = raw.replace(/[^\dkK]/g, '').replace(/^0+/, '');
+                let formatted = clean;
+                if (clean.length > 1) {
+                    const body = clean.slice(0, -1);
+                    const dv = clean.slice(-1).toUpperCase();
+                    formatted = `${new Intl.NumberFormat('es-CL').format(body)}-${dv}`;
+                }
+                if (e.target.value !== formatted) e.target.value = formatted;
+
+                if (clean.length >= 3) {
+                    const clientesBase = await getClientesFromSheet();
+                    const filtered = clientesBase.filter(c => c.rut && c.rut.replace(/[^\dkK]/gi,'').startsWith(clean.replace(/[^\dkK]/gi,'')));
+                    if (filtered.length > 0) {
+                        filtered.slice(0,10).forEach(client => {
+                            resultsContainer.appendChild(makeItem(
+                                `<span style="font-weight:700;color:#e3e1ea">${client.nombre} ${client.apellido}</span> <span style="color:#6b7280;font-size:0.75rem;margin-left:8px">${client.rut}</span>`,
+                                () => {
+                                    document.getElementById("addNombre").value = client.nombre;
+                                    document.getElementById("addApellido").value = client.apellido;
+                                    selectedClientRut = client.rut;
+                                    resultsContainer.classList.add("hidden");
+                                }
+                            ));
+                        });
+                        resultsContainer.classList.remove("hidden");
+                    } else {
+                        const rutField = document.getElementById("addRut");
+                        rutField.value = formatted;
+                        rutField.classList.remove("hidden");
+                        resultsContainer.classList.add("hidden");
+                    }
+                } else {
+                    resultsContainer.classList.add("hidden");
+                }
+                return;
+            }
+
+            // Búsqueda por nombre
+            const searchTerm = raw.toLowerCase();
+            if (searchTerm.length > 0) {
+                const clientesBase = await getClientesFromSheet();
+                const filtered = clientesBase.filter(c => (c.nombre+" "+c.apellido).toLowerCase().includes(searchTerm));
+                if (filtered.length > 0) {
+                    filtered.slice(0,10).forEach(client => {
+                        resultsContainer.appendChild(makeItem(
+                            `<span style="font-weight:700">${client.nombre} ${client.apellido}</span> <span style="color:#6b7280;font-size:0.75rem;margin-left:8px">${client.rut||''}</span>`,
+                            () => {
+                                document.getElementById("addNombre").value = client.nombre;
+                                document.getElementById("addApellido").value = client.apellido;
+                                selectedClientRut = client.rut;
+                                resultsContainer.classList.add("hidden");
+                            }
+                        ));
+                    });
+                    resultsContainer.classList.remove("hidden");
+                } else {
+                    document.getElementById("addRut").classList.remove("hidden");
+                    resultsContainer.classList.add("hidden");
+                }
+            } else {
+                resultsContainer.classList.add("hidden");
+            }
+        });
+        window.addEventListener("click",e=>{
+            "addNombre"!==e.target.id&&document.getElementById("searchResults")&&document.getElementById("searchResults").classList.add("hidden");
+            // Solo cerrar modales que NO sean el roleModal (ese es obligatorio)
+            if(e.target.classList.contains("modal-container")&&e.target.id!=='roleModal')
+                e.target.style.display="none";
+            // Cerrar panel notificaciones si click fuera
+            var notifDrop=document.getElementById('syncNotifDropdown');
+            if(notifDrop&&!notifDrop.contains(e.target)&&!e.target.closest('[onclick*="toggleNotifPanel"]'))
+                notifDrop.classList.add('hidden');
+        });
+        getClientesFromSheet();
+    });
+
     </script>
 </body>
 </html>
