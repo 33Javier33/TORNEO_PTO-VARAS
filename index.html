@@ -999,7 +999,7 @@
     function getBestEntryPerPlayer(e,t){const o=new Map;const n=e.filter(e=>!e.isTableBreak);n.forEach(e=>{o.has(e.rut)&&calculateTotal(e,t)<=calculateTotal(o.get(e.rut),t)||o.set(e.rut,e)});return Array.from(o.values())}
     function sendFullscreenCommand(){localStorage.setItem("fullscreen_command",(new Date).getTime()),showToast("Señal de pantalla completa enviada.",!0)}
     function toggleThemeCommand(){const e=document.getElementById("themeSwitch").checked;localStorage.setItem("theme_command",JSON.stringify({theme:e?"dark":"light",timestamp:(new Date).getTime()})),showToast(`Comando modo ${e?"oscuro":"claro"} enviado.`,!0)}
-    function renderClients(e){const t=document.querySelector("#clientTable tbody"),o=document.querySelector("#clientTable thead"),n=TOURNAMENTS[e],l=getTournamentRounds(e),a=getClientesTorneo(e),r="roulette"===n.type;t.innerHTML="";const i=a.filter(e=>!e.isTableBreak),s=new Set(i.map(e=>e.rut));document.getElementById("totalCount").textContent=s.size;const d=new Set(i.filter(e=>e.cuponSorteo).map(e=>e.rut));document.getElementById("sorteoCount").textContent=d.size;const c=new Set(i.filter(e=>e.ticketCanje).map(e=>e.rut));document.getElementById("canjeCount").textContent=c.size;let u=`<tr><th class="p-3 w-12"><input type="checkbox" onchange="toggleSelectAll(this)"></th><th class="p-3">Cliente</th>`;r&&(u+='<th class="p-3">Color</th>'),u+='<th class="p-3">Tipo</th>',l.forEach(e=>{u+=`<th class="p-3">${e}</th>`}),u+='<th class="p-3">Total</th><th class="p-3 text-center">Acciones</th></tr>',o.innerHTML=u;let m=1,g=0;const p=n.playersPerTable,f=(r?5:4)+l.length+1;a.forEach((o,n)=>{if(o.isTableBreak){const e=t.insertRow();e.className="table-break-row";const l=e.insertCell();return l.colSpan=f,l.innerHTML=`\n                        <div class="flex justify-center items-center gap-4">\n                            <span>--- Mesa ${o.tableNumber} cerrada con ${o.playerCount} jugador(es) ---</span>\n                            <button onclick="reopenTable(${n})" class="bg-blue-600 text-white px-4 py-1 rounded-md text-xs font-bold hover:bg-blue-700 transition-colors">Reabrir Mesa</button>\n                        </div>\n                    `,m=o.tableNumber+1,void(g=0)}0===g&&(()=>{const e=t.insertRow();e.className="bg-sky-200 font-bold text-sky-800 table-header-row";const o=e.insertCell();o.colSpan=f,o.className="p-2 text-left pl-4",o.textContent=`Mesa ${m}`})();const a=t.insertRow(),i=selectedIndices.includes(n);a.className=`player-row ${i?"selected":"not-draggable"}`,a.dataset.index=n,a.dataset.rut=o.rut,a.dataset.id=o.id,a.insertCell().innerHTML=`<div class="p-2 text-center"><input type="checkbox" onchange="toggleSelection(this, ${n})" ${i?"checked":""}></div>`,a.insertCell().innerHTML=`<div class="p-2 rounded hover:bg-sky-100" onclick="showRutModal('${o.rut}')">${o.nombre} ${o.apellido}</div>`,r&&(a.insertCell().innerHTML=`<div class="p-2 flex justify-center items-center"><span class="color-swatch" style="background-color: ${o.color||"#FFFFFF"};" onclick="openColorModal(${n}, 'player')"></span></div>`);let s='<span class="bg-slate-400 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">Ninguno</span>';o.cuponSorteo?s='<span class="bg-green-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">CS</span>':o.ticketCanje&&(s='<span class="bg-indigo-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">TC</span>'),a.insertCell().innerHTML=`<div class="p-2 text-center">${s}</div>`,l.forEach(e=>{const t=e.toLowerCase().replace(/ /g,""),l=formatNumberForDisplay(o[t]);a.insertCell().innerHTML=`<div class="p-2"><input type="tel" value="${l}" oninput="formatNumericInput(this)" onchange="updateScore(${n}, '${t}', this.value)" class="score-input"></div>`}),a.insertCell().innerHTML=`<div class="p-2 text-center font-bold">${calculateTotal(o,e).toLocaleString("es-CL")}</div>`,a.insertCell().innerHTML=`<div class="p-2 text-center space-x-2"><button onclick="openEditModal(${n})" class="bg-yellow-400 text-white px-3 py-1 rounded-md text-xs hover:bg-yellow-500">Editar</button><button onclick="deleteClient(${n})" class="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600">Eliminar</button></div>`,g++,g===p&&(m++,g=0)}),g>0&&(()=>{const e=t.insertRow(),o=e.insertCell();o.colSpan=f,o.className="p-3 text-center",o.innerHTML=`<button onclick="closeTable()" class="bg-emerald-600 text-white px-6 py-2 rounded-md font-bold hover:bg-emerald-700 transition-colors">Cerrar Mesa ${m} con ${g} Jugador(es)</button>`})}
+    function renderClients(e){const t=document.querySelector("#clientTable tbody"),o=document.querySelector("#clientTable thead"),n=TOURNAMENTS[e],l=getTournamentRounds(e),a=getClientesTorneo(e),r="roulette"===n.type;t.innerHTML="";const i=a.filter(e=>!e.isTableBreak),s=new Set(i.map(e=>e.rut));document.getElementById("totalCount").textContent=s.size;const d=new Set(i.filter(e=>e.cuponSorteo).map(e=>e.rut));document.getElementById("sorteoCount").textContent=d.size;const c=new Set(i.filter(e=>e.ticketCanje).map(e=>e.rut));document.getElementById("canjeCount").textContent=c.size;let u=`<tr><th class="p-3 w-12"><input type="checkbox" onchange="toggleSelectAll(this)"></th><th class="p-3">Cliente</th>`;r&&(u+='<th class="p-3">Color</th>'),u+='<th class="p-3">Tipo</th>',l.forEach(e=>{u+=`<th class="p-3">${e}</th>`}),u+='<th class="p-3">Total</th><th class="p-3 text-center">Acciones</th></tr>',o.innerHTML=u;let m=1,g=0;const p=n.playersPerTable,f=(r?5:4)+l.length+1;a.forEach((o,n)=>{if(o.isTableBreak){const e=t.insertRow();e.className="table-break-row";const l=e.insertCell();return l.colSpan=f,l.innerHTML=`\n                        <div class="flex justify-center items-center gap-4">\n                            <span>--- Mesa ${o.tableNumber} cerrada con ${o.playerCount} jugador(es) ---</span>\n                            <button onclick="reopenTable(${n})" class="bg-blue-600 text-white px-4 py-1 rounded-md text-xs font-bold hover:bg-blue-700 transition-colors">Reabrir Mesa</button>\n                        </div>\n                    `,m=o.tableNumber+1,void(g=0)}0===g&&(()=>{const e=t.insertRow();e.className="bg-sky-200 font-bold text-sky-800 table-header-row";const o=e.insertCell();o.colSpan=f,o.className="p-2 text-left pl-4",o.textContent=`Mesa ${m}`})();const a=t.insertRow(),i=selectedIndices.includes(n);a.className=`player-row ${i?"selected":"not-draggable"}`,a.dataset.index=n,a.dataset.rut=o.rut,a.dataset.id=o.id,a.insertCell().innerHTML=`<div class="p-2 text-center"><input type="checkbox" onchange="toggleSelection(this, ${n})" ${i?"checked":""}></div>`,a.insertCell().innerHTML=`<div class="p-2 rounded cursor-pointer" style="transition:background 0.15s" onmouseenter="this.style.background='rgba(0,218,243,0.12)'" onmouseleave="this.style.background=''" onclick="showRutModal('${o.rut}')">${o.nombre} ${o.apellido}</div>`,r&&(a.insertCell().innerHTML=`<div class="p-2 flex justify-center items-center"><span class="color-swatch" style="background-color: ${o.color||"#FFFFFF"};" onclick="openColorModal(${n}, 'player')"></span></div>`);let s='<span class="bg-slate-400 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">Ninguno</span>';o.cuponSorteo?s='<span class="bg-green-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">CS</span>':o.ticketCanje&&(s='<span class="bg-indigo-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">TC</span>'),a.insertCell().innerHTML=`<div class="p-2 text-center">${s}</div>`,l.forEach(e=>{const t=e.toLowerCase().replace(/ /g,""),l=formatNumberForDisplay(o[t]);a.insertCell().innerHTML=`<div class="p-2"><input type="tel" value="${l}" oninput="formatNumericInput(this)" onchange="updateScore(${n}, '${t}', this.value)" class="score-input"></div>`}),a.insertCell().innerHTML=`<div class="p-2 text-center font-bold">${calculateTotal(o,e).toLocaleString("es-CL")}</div>`,a.insertCell().innerHTML=`<div class="p-2 text-center space-x-2"><button onclick="openEditModal(${n})" class="bg-yellow-400 text-white px-3 py-1 rounded-md text-xs hover:bg-yellow-500">Editar</button><button onclick="deleteClient(${n})" class="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600">Eliminar</button></div>`,g++,g===p&&(m++,g=0)}),g>0&&(()=>{const e=t.insertRow(),o=e.insertCell();o.colSpan=f,o.className="p-3 text-center",o.innerHTML=`<button onclick="closeTable()" class="bg-emerald-600 text-white px-6 py-2 rounded-md font-bold hover:bg-emerald-700 transition-colors">Cerrar Mesa ${m} con ${g} Jugador(es)</button>`})}
     function clearAllParticipants(){if(!confirm("¿Estás seguro de que quieres eliminar a TODOS los participantes de esta planilla? Esta acción no se puede deshacer."))return;const e=document.getElementById("tournamentSelector").value;saveClientesTorneo(e,[]),selectedIndices=[],renderClients(e),initializeSortable(),showToast("La planilla ha sido limpiada.",!0);if(typeof schedulePush==="function")schedulePush({type:"delete",description:"Planilla limpiada",by:SYNC_ROLE,at:Date.now()});}
     function closeTable(){if(!confirm("¿Estás seguro de que quieres cerrar esta mesa?"))return;const e=document.getElementById("tournamentSelector").value,t=getClientesTorneo(e);let o=0,n=1;t.forEach(e=>{e.isTableBreak?(n=e.tableNumber+1,o=0):o++}),o>0&&(t.push({isTableBreak:!0,playerCount:o,tableNumber:n}),saveClientesTorneo(e,t),renderClients(e),initializeSortable(),showToast(`Mesa ${n} cerrada.`,!0),typeof schedulePush==="function"&&schedulePush({type:"move",description:`Mesa ${n} cerrada`,by:SYNC_ROLE,at:Date.now()}))}
     function reopenTable(e){if(!confirm("¿Estás seguro de que quieres reabrir esta mesa?"))return;const t=document.getElementById("tournamentSelector").value;let o=getClientesTorneo(t);const n=o[e].tableNumber;o.splice(e,1),saveClientesTorneo(t,o),renderClients(t),initializeSortable(),showToast(`Mesa ${n} ha sido reabierta.`,!0);if(typeof schedulePush==="function")schedulePush({type:"move",description:`Mesa ${n} reabierta`,by:SYNC_ROLE,at:Date.now()});}
@@ -1013,8 +1013,45 @@
     function saveClientChanges(){const e=document.getElementById("editIndex").value,t=document.getElementById("editTipoCupon").value,o=document.getElementById("tournamentSelector").value;let n=getClientesTorneo(o);n[e]&&!n[e].isTableBreak&&(n[e].cuponSorteo="sorteo"===t,n[e].ticketCanje="canje"===t,saveClientesTorneo(o,n),renderClients(o),initializeSortable(),closeEditModal(),showToast("Cambios guardados.",!0),typeof schedulePush==="function"&&schedulePush({type:"move",description:"Cupón actualizado",by:SYNC_ROLE,at:Date.now()}))}
     function openColorModal(e,t){chipColorPickerTarget={index:e,type:t};const o=document.getElementById("colorModalPalette");o.innerHTML="";PREDEFINED_COLORS.forEach(c=>{const n=document.createElement("button");n.className="color-swatch-card";n.style.cssText=`background-color:${c.hex};border:3px solid ${c.hex==='#FFFFFF'?'#ccc':'transparent'};border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;width:72px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;gap:2px;`;n.innerHTML=`<span style="font-size:1.4rem;line-height:1;color:${c.hex==='#FFFFFF'||c.hex==='#FDD835'?'#1e293b':'white'};text-shadow:0 1px 3px rgba(0,0,0,0.4)">${c.symbol}</span><span style="font-size:0.65rem;font-weight:700;color:${c.hex==='#FFFFFF'||c.hex==='#FDD835'?'#1e293b':'white'};text-shadow:0 1px 3px rgba(0,0,0,0.5);letter-spacing:0.03em">${c.name}</span>`;n.onmouseover=()=>{n.style.transform='scale(1.12)';n.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)';};n.onmouseout=()=>{n.style.transform='scale(1)';n.style.boxShadow='none';};n.onclick=()=>{if("player"===chipColorPickerTarget.type)updateClientColor(chipColorPickerTarget.index,c.hex);else if("chip"===chipColorPickerTarget.type){let o=getChips();o[chipColorPickerTarget.index].color=c.hex,saveChips(o),renderChipConfig(),showToast("Color de ficha actualizado.",!0)}closeColorModal()};o.appendChild(n)}),document.getElementById("colorModal").style.display="flex"}
     function closeColorModal(){document.getElementById("colorModal").style.display="none",chipColorPickerTarget=null}
-    async function showRutModal(rut) { const clientes = await getClientesFromSheet(); const client = clientes.find(t => t.rut === rut); document.getElementById("rutModal").querySelector("#modalContent").innerHTML = `<span class="close-btn" onclick="closeRutModal()">&times;</span><h2 class="text-xl font-bold mb-4">Datos de Cliente</h2><p><span class="font-bold">Nombre:</span> ${client ? `${client.nombre} ${client.apellido}` : "N/A"}</p><p><span class="font-bold">RUT:</span> ${rut || "No definido"}</p>`; document.getElementById("rutModal").style.display="flex"; }
-    function closeRutModal(){document.getElementById("rutModal").style.display="none"}
+    async function showRutModal(rut) {
+        // Deseleccionar todas las filas al abrir modal
+        document.querySelectorAll('#clientTable tbody tr.player-row').forEach(r => {
+            r.style.outline = '';
+            r.style.background = '';
+        });
+        const clientes = await getClientesFromSheet();
+        const client = clientes.find(t => t.rut === rut);
+        // Contar entradas del torneo
+        const tid = document.getElementById('tournamentSelector').value;
+        const entradas = getClientesTorneo(tid).filter(c => c.rut === rut && !c.isTableBreak);
+        const cuponInfo = entradas.map(e =>
+            e.cuponSorteo ? '🟢 Cupón Sorteo (CS)' : e.ticketCanje ? '🔵 Ticket Canje (TC)' : '⚪ Sin cupón'
+        ).join('<br>') || '—';
+        document.getElementById('rutModal').querySelector('#modalContent').innerHTML = `
+            <span class="close-btn" onclick="closeRutModal()">&times;</span>
+            <div class="flex items-center gap-3 mb-4 pb-3 border-b border-[#4a5568]/40">
+                <span class="material-symbols-outlined text-[#00daf3] text-2xl" style="font-variation-settings:'FILL' 1">person</span>
+                <h2 class="font-headline font-bold text-lg text-[#e3e1ea]">Datos del Participante</h2>
+            </div>
+            <div class="space-y-3">
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-[10px] font-label font-bold text-[#6b7280] uppercase tracking-widest">Nombre completo</span>
+                    <span class="font-headline font-bold text-base text-[#e3e1ea]">${client ? `${client.nombre} ${client.apellido}` : 'No encontrado'}</span>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-[10px] font-label font-bold text-[#6b7280] uppercase tracking-widest">RUT</span>
+                    <span class="font-label font-bold text-sm text-[#bac9cc] tracking-wider">${rut || '—'}</span>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-[10px] font-label font-bold text-[#6b7280] uppercase tracking-widest">Entradas en este torneo</span>
+                    <span class="font-label text-sm text-[#bac9cc] leading-relaxed">${cuponInfo}</span>
+                </div>
+            </div>
+            <button onclick="closeRutModal()" class="mt-5 w-full py-2 rounded-lg border border-[#4a5568] text-[#bac9cc] text-sm font-label font-bold hover:border-[#00daf3] hover:text-[#00daf3] transition-all">Cerrar</button>
+        `;
+        document.getElementById('rutModal').style.display = 'flex';
+    }
+    function closeRutModal() { document.getElementById('rutModal').style.display = 'none'; }
     function openConfigModal(){renderChipConfig(),document.getElementById("configModal").style.display="flex"}
     function closeConfigModal(){document.getElementById("configModal").style.display="none"}
     // Colores estándar de fichas de casino
@@ -2089,100 +2126,111 @@
         {
             title: "Inicio de sesión y roles",
             icon: "admin_panel_settings",
+            color: "#e9c400",
             items: [
-                { label: "👑 Supervisor", desc: "Al abrir la planilla se pide un nombre y una clave. Si no hay sesión activa, se crea una nueva que queda anclada al torneo. Solo el Supervisor con esa clave puede cambiar la configuración." },
-                { label: "🎮 Operador", desc: "Puede agregar participantes y registrar puntajes, pero no puede cambiar la configuración del torneo mientras haya una sesión de Supervisor activa." },
-                { label: "👁 Solo Lectura", desc: "Solo visualiza lo que ocurre en tiempo real. No puede editar nada." },
-                { label: "🔑 Código maestro", desc: "Si el Supervisor olvida su clave, se puede usar el código maestro 'CarlosPN2024' para acceder o cerrar la sesión." }
+                { icon: "👑", label: "Supervisor", desc: "Ingresa con nombre y clave. Si no hay sesión activa, crea una nueva. Solo él puede cambiar la configuración mientras dure su sesión." },
+                { icon: "🎮", label: "Operador", desc: "Agrega participantes y registra puntajes. No puede cambiar configuración si el Supervisor tiene sesión activa." },
+                { icon: "👁", label: "Solo Lectura", desc: "Solo visualiza en tiempo real. No puede editar nada." },
+                { icon: "🔑", label: "Código maestro", desc: "Si el Supervisor olvidó su clave, usa 'CarlosPN2024' para acceder o cerrar la sesión de emergencia." }
             ]
         },
         {
             title: "Selección del torneo",
             icon: "emoji_events",
+            color: "#00daf3",
             items: [
-                { label: "Tipos de torneo", desc: "Usa el selector de torneo para elegir entre Ruleta, Draw Poker, Blackjack y sus versiones VIP. Cada uno tiene su propia planilla de participantes y configuración." },
-                { label: "Torneos de cartas", desc: "Draw Poker y Blackjack muestran la columna de Puntaje y el rack de fichas con denominación e imagen." },
-                { label: "Torneo de ruleta", desc: "Muestra columnas de Bolita 1, Bolita 2, etc. según las bolitas configuradas. Se puede ajustar la cantidad en Configuración." },
-                { label: "Versiones VIP", desc: "Funcionan igual que sus versiones normales, pero con planilla y datos separados. Útil para manejar dos torneos simultáneos." }
+                { icon: "🎰", label: "Ruleta / Ruleta VIP", desc: "Muestra columnas Bolita 1, 2, 3... según la cantidad configurada. Cada jugador tiene un color de apuesta asignado." },
+                { icon: "🃏", label: "Draw Poker / Blackjack", desc: "Muestra columna de Puntaje y el rack de fichas con denominación e imagen en la pantalla." },
+                { icon: "⭐", label: "Versiones VIP", desc: "Planilla y datos separados de la versión normal. Ideal para manejar dos torneos distintos al mismo tiempo." },
+                { icon: "💡", label: "Tip", desc: "Cambiar el tipo de torneo limpia la vista pero no borra los datos — cada tipo guarda su propia lista de participantes." }
             ]
         },
         {
             title: "Agregar participantes",
             icon: "person_add",
+            color: "#22c55e",
             items: [
-                { label: "Buscar por nombre o RUT", desc: "Escribe en el campo 'Buscar' y el sistema consulta la base de datos central. Al seleccionar un resultado, nombre y apellido se cargan solos." },
-                { label: "Cliente nuevo", desc: "Si el jugador no está en la base, escribe su nombre, apellido y RUT manualmente. El sistema lo agrega automáticamente a la base de datos." },
-                { label: "Tipos de cupón", desc: "Selecciona Cupón Sorteo (CS), Ticket Canje (TC) o Ninguno antes de presionar Añadir. Cada jugador puede tener máximo 2 entradas y no puede repetir el mismo tipo de cupón." },
-                { label: "Validación automática", desc: "El sistema avisa si el jugador ya agotó sus entradas o si ya usó ese tipo de cupón. No permite duplicados." }
+                { icon: "🔍", label: "Buscar por nombre o RUT", desc: "Escribe en el campo 'Buscar' — el sistema busca en la base de datos. Al seleccionar un resultado, nombre y apellido se llenan solos." },
+                { icon: "➕", label: "Cliente nuevo", desc: "Si el jugador no aparece, escribe nombre, apellido y RUT manualmente. Se agrega automáticamente a la base de datos central." },
+                { icon: "🎫", label: "Tipos de cupón", desc: "Elige Cupón Sorteo (CS), Ticket Canje (TC) o Ninguno. Cada jugador puede tener máximo 2 entradas sin repetir tipo de cupón." },
+                { icon: "🛡️", label: "Validación automática", desc: "El sistema avisa si el jugador ya agotó sus entradas o si ya usó ese tipo de cupón. No permite duplicados." }
             ]
         },
         {
-            title: "Control de mesas",
-            icon: "grid_view",
+            title: "Organizar la tabla",
+            icon: "drag_indicator",
+            color: "#a78bfa",
             items: [
-                { label: "Cerrar mesa", desc: "El botón 'Cerrar Mesa' al final de la tabla separa el grupo actual como una mesa completa. Los jugadores quedan agrupados con su número de mesa." },
-                { label: "Reabrir mesa", desc: "Si cometiste un error, presiona el botón 'Reabrir Mesa' dentro del separador para volver a integrar esos jugadores a la planilla abierta." },
-                { label: "Arrastrar jugadores", desc: "Marca el checkbox de uno o varios jugadores y arrástralos a otra posición para reordenarlos o moverlos entre mesas." },
-                { label: "Eliminar entrada", desc: "El botón 'Eliminar' en cada fila quita esa entrada del torneo. Si el jugador tenía más entradas, las otras permanecen." }
+                { icon: "☑️", label: "Seleccionar jugadores", desc: "Marca el checkbox de uno o varios jugadores para seleccionarlos. Aparecen resaltados en cyan." },
+                { icon: "↕️", label: "Arrastrar y reordenar", desc: "Con jugadores seleccionados, arrástralos a otra posición dentro de la tabla para reordenarlos." },
+                { icon: "ℹ️", label: "Ver datos del jugador", desc: "Haz click en el nombre del jugador para ver su ficha completa: nombre, RUT y entradas registradas en el torneo." },
+                { icon: "✏️", label: "Editar cupón", desc: "El botón 'Editar' en cada fila permite cambiar el tipo de cupón (CS/TC/Ninguno) de una entrada ya registrada." }
             ]
         },
         {
-            title: "Puntajes y colores",
+            title: "Puntajes",
             icon: "scoreboard",
+            color: "#f59e0b",
             items: [
-                { label: "Ingresar puntajes", desc: "Escribe directamente en las celdas de puntaje de cada jugador. El total se actualiza al instante. Los números se formatean automáticamente con separador de miles." },
-                { label: "Color de jugador (Ruleta)", desc: "En torneos de ruleta, cada jugador tiene un color de apuesta asignado. Haz click en el círculo de color para cambiarlo desde la paleta." },
-                { label: "Clasificación automática", desc: "La pantalla del torneo ordena automáticamente a los jugadores de mayor a menor puntaje total. Los 3 primeros se destacan con medalla." },
-                { label: "Editar cupón", desc: "Usa el botón 'Editar' para cambiar el tipo de cupón (CS/TC/Ninguno) de una entrada ya registrada." }
+                { icon: "⌨️", label: "Ingresar puntajes", desc: "Escribe directamente en las celdas de puntaje. El total se actualiza al instante con separador de miles automático." },
+                { icon: "🏆", label: "Clasificación automática", desc: "La pantalla del torneo ordena a los jugadores de mayor a menor puntaje. Los 3 primeros se destacan con medalla de oro, plata y bronce." },
+                { icon: "🎨", label: "Color de jugador (Ruleta)", desc: "En ruleta, cada jugador tiene un color de apuesta. Haz click en el círculo de color para cambiarlo desde la paleta." },
+                { icon: "🗑️", label: "Eliminar entrada", desc: "El botón 'Eliminar' quita esa entrada del torneo. Si el jugador tiene más entradas, las otras permanecen." }
             ]
         },
         {
             title: "Configuración del torneo",
             icon: "settings",
+            color: "#6b7280",
             items: [
-                { label: "Fecha y encargado", desc: "Define la fecha del torneo y el nombre del director. Aparecen en los informes PDF y en la pantalla del torneo." },
-                { label: "Premios y pozo", desc: "Ingresa el pozo total y los premios para 1°, 2° y 3° lugar. Se muestran en la pantalla girando automáticamente cada 4 segundos." },
-                { label: "Hora de cierre", desc: "Define la hora límite de inscripciones. La pantalla mostrará una cuenta regresiva cuando queden menos de 20 minutos." },
-                { label: "Fichas (cartas)", desc: "Agrega fichas con su valor y nombre de imagen. Los colores sugeridos aparecen como círculos — click para agregar. El nombre del archivo debe coincidir con el que está en la carpeta /fichas/ del repositorio (ej: roja, negra, azul)." }
+                { icon: "📅", label: "Fecha y encargado", desc: "Define la fecha del torneo y el nombre del director. Aparecen en los informes PDF y en la pantalla en vivo." },
+                { icon: "💰", label: "Premios y pozo", desc: "Ingresa el pozo total y los premios para 1°, 2° y 3° lugar. La pantalla los muestra girando cada 4 segundos." },
+                { icon: "⏰", label: "Hora de cierre", desc: "Define la hora límite de inscripciones. La pantalla muestra cuenta regresiva cuando quedan menos de 20 minutos." },
+                { icon: "🎰", label: "Fichas (cartas)", desc: "Agrega fichas con valor e imagen. El nombre del archivo debe coincidir con el de la carpeta /fichas/ del repositorio (ej: roja, negra)." }
             ]
         },
         {
             title: "Límites de apuesta",
             icon: "price_check",
+            color: "#34d399",
             items: [
-                { label: "Torneos de cartas", desc: "Configura la apuesta mínima y máxima. Se muestran en la card de fichas de la pantalla del torneo." },
-                { label: "Torneos de ruleta", desc: "Configura el pleno mínimo y máximo. La pantalla los muestra junto al nombre del torneo." },
-                { label: "¿Dónde se ven?", desc: "En la pantalla del torneo aparece una card con 'MÍN' y 'MÁX' en verde y rojo respectivamente, visible en todo momento para los jugadores." }
+                { icon: "🃏", label: "Torneos de cartas", desc: "Configura apuesta mínima y máxima. Se muestran en la card de fichas de la pantalla junto a las denominaciones." },
+                { icon: "🎰", label: "Torneos de ruleta", desc: "Configura pleno mínimo y máximo. La pantalla los muestra en una card visible durante todo el torneo." },
+                { icon: "🟢🔴", label: "¿Cómo se ven?", desc: "En la pantalla del torneo aparece 'MÍN' en verde y 'MÁX' en rojo, siempre visible para los jugadores." },
+                { icon: "💡", label: "Tip", desc: "Si dejas los límites en cero, la card de límites no aparece en la pantalla. Solo se muestra si hay valores definidos." }
             ]
         },
         {
             title: "Mesa final y ganadores",
             icon: "military_tech",
+            color: "#e9c400",
             items: [
-                { label: "Generar mesa final", desc: "Presiona 'Iniciar Mesa Final' para seleccionar automáticamente los mejores jugadores por puntaje total. La cantidad depende del tipo de torneo (5 o 6 finalistas)." },
-                { label: "Puntajes de la final", desc: "En la vista de mesa final, los puntajes de clasificación quedan bloqueados. Solo se editan los puntajes nuevos de la ronda final." },
-                { label: "Declarar ganadores", desc: "Presiona 'Declarar Ganadores' para mostrar el pódium en la pantalla del torneo con los 3 primeros lugares y sus premios." },
-                { label: "Informe PDF", desc: "Se genera automáticamente un PDF con el acta del torneo, participantes, puntajes y ganadores. Se descarga directo al dispositivo." }
+                { icon: "⚡", label: "Generar mesa final", desc: "Presiona 'Iniciar Mesa Final' para seleccionar automáticamente los mejores jugadores por puntaje. La cantidad depende del torneo (5 o 6 finalistas)." },
+                { icon: "📝", label: "Puntajes de la final", desc: "En la vista de mesa final los puntajes de clasificación quedan fijos. Solo se editan los puntajes nuevos de la ronda final." },
+                { icon: "🏆", label: "Declarar ganadores", desc: "Presiona 'Declarar Ganadores' para mostrar el pódium animado en la pantalla con los 3 primeros y sus premios." },
+                { icon: "📄", label: "Informe PDF", desc: "Se genera automáticamente un acta del torneo con participantes, puntajes y ganadores. Se descarga al dispositivo." }
             ]
         },
         {
             title: "Sincronización en tiempo real",
             icon: "sync",
+            color: "#00daf3",
             items: [
-                { label: "¿Cómo funciona?", desc: "La planilla guarda el estado completo del torneo en Google Sheets cada vez que hay un cambio. La pantalla y los demás dispositivos leen ese estado cada 4 segundos." },
-                { label: "Indicador de sync", desc: "El punto de color en el header indica el estado: verde = sincronizado, amarillo = guardando, cyan = recibiendo, rojo = sin conexión." },
-                { label: "Bloqueo de torneo", desc: "El Supervisor puede presionar '🔒 Bloquear' para que nadie más pueda editar nada hasta que él desbloquee. Útil durante la mesa final." },
-                { label: "Actividad reciente", desc: "El ícono de campana muestra las últimas acciones: quién agregó o eliminó participantes, cambios de configuración, etc." }
+                { icon: "📡", label: "¿Cómo funciona?", desc: "Cada cambio se guarda en Google Sheets. La pantalla y los demás dispositivos leen ese estado cada 4 segundos automáticamente." },
+                { icon: "🟢", label: "Indicador de sync", desc: "Punto verde = sincronizado · Punto amarillo = guardando · Punto cyan = recibiendo · Punto rojo = sin conexión." },
+                { icon: "🔒", label: "Bloqueo de torneo", desc: "El Supervisor puede bloquear el torneo para que nadie más edite nada. Útil durante la mesa final para evitar cambios accidentales." },
+                { icon: "🔔", label: "Actividad reciente", desc: "El ícono de campana muestra las últimas acciones: quién agregó o eliminó participantes, cambios de puntaje y configuración." }
             ]
         },
         {
             title: "Guardar y recuperar torneos",
             icon: "cloud_done",
+            color: "#818cf8",
             items: [
-                { label: "Guardar en la nube", desc: "Presiona 'Archivar Torneo' en Configuración para guardar una copia del torneo completo en Google Sheets. Queda accesible desde cualquier dispositivo." },
-                { label: "Recuperar torneo", desc: "Presiona 'Recuperar desde Nube' para ver el historial de torneos guardados y cargar uno anterior. Los datos actuales se reemplazan." },
-                { label: "Guardar localmente", desc: "También puedes exportar el torneo como archivo JSON al dispositivo, y cargarlo más tarde desde ese archivo." },
-                { label: "Reinicio forzado", desc: "En caso de error grave, 'Reinicio Forzado' borra todos los datos locales del navegador. Úsalo solo como último recurso — es irreversible." }
+                { icon: "☁️", label: "Guardar en la nube", desc: "Presiona 'Archivar Torneo' en Configuración para guardar una copia completa en Google Sheets. Accesible desde cualquier dispositivo." },
+                { icon: "📥", label: "Recuperar torneo", desc: "Presiona 'Recuperar desde Nube' para ver el historial y cargar un torneo anterior. Los datos actuales se reemplazan." },
+                { icon: "💾", label: "Guardar localmente", desc: "También puedes exportar el torneo como archivo JSON y cargarlo luego desde ese archivo en cualquier dispositivo." },
+                { icon: "⚠️", label: "Reinicio forzado", desc: "Borra todos los datos locales del navegador. Úsalo solo como último recurso ante un error grave — es irreversible." }
             ]
         }
     ];
@@ -2202,29 +2250,35 @@
         const content = document.getElementById('helpContent');
         const index = document.getElementById('helpIndex');
         const indicator = document.getElementById('helpStepIndicator');
+        const color = step.color || '#00daf3';
 
         content.innerHTML = `
-            <div class="flex items-center gap-3 mb-4">
-                <span class="material-symbols-outlined text-[#00daf3] text-3xl flex-shrink-0" style="font-variation-settings:'FILL' 1">${step.icon}</span>
-                <h4 class="font-headline font-bold text-base uppercase tracking-wide text-on-surface">${step.title}</h4>
+            <div class="flex items-center gap-3 mb-4 pb-3 border-b border-[#4a5568]/30">
+                <div style="width:40px;height:40px;border-radius:10px;background:${color}18;border:1px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <span class="material-symbols-outlined" style="color:${color};font-size:22px;font-variation-settings:'FILL' 1">${step.icon}</span>
+                </div>
+                <h4 class="font-headline font-bold text-base uppercase tracking-wide" style="color:${color}">${step.title}</h4>
             </div>
-            <div class="space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 ${step.items.map(item => `
-                    <div class="flex gap-3 p-3 rounded-lg bg-[#0d0e14] border border-[#4a5568]/30">
-                        <div class="flex-1 min-w-0">
-                            <p class="font-label font-bold text-xs text-[#00daf3] uppercase tracking-wide mb-1">${item.label}</p>
-                            <p class="font-body text-sm text-[#bac9cc] leading-relaxed">${item.desc}</p>
+                    <div class="flex gap-3 p-3 rounded-xl bg-[#0d0e14] border border-[#4a5568]/25 hover:border-[#4a5568]/50 transition-all">
+                        <span style="font-size:1.4rem;flex-shrink:0;line-height:1.3">${item.icon}</span>
+                        <div class="min-w-0">
+                            <p class="font-label font-black text-xs mb-1" style="color:${color}">${item.label}</p>
+                            <p class="font-body text-xs text-[#9ca3af] leading-relaxed">${item.desc}</p>
                         </div>
                     </div>
                 `).join('')}
             </div>
         `;
 
-        // Dots de navegación
+        // Dots con tooltip del título
         index.innerHTML = HELP_STEPS.map((s, i) => `
-            <div title="${s.title}"
-                onclick="currentHelpStep=${i};renderHelpStep()"
-                style="cursor:pointer;height:6px;border-radius:99px;transition:all 0.2s;background:${i === currentHelpStep ? '#00daf3' : '#4a5568'};width:${i === currentHelpStep ? '20px' : '6px'}">
+            <div title="${s.title}" onclick="currentHelpStep=${i};renderHelpStep()"
+                style="cursor:pointer;height:5px;border-radius:99px;transition:all 0.25s;
+                background:${i === currentHelpStep ? (s.color||'#00daf3') : '#4a5568'};
+                width:${i === currentHelpStep ? '22px' : '6px'};
+                opacity:${i === currentHelpStep ? '1' : '0.5'}">
             </div>
         `).join('');
 
