@@ -705,22 +705,21 @@
         </div>
     </div>
 
-    <!-- Modal de Ayuda -->
     <div id="helpModal" class="modal-container">
-        <div class="modal-content" style="width:680px;max-width:95%;">
+        <div class="modal-content" style="width:720px;max-width:95%;max-height:92vh;">
             <span class="close-btn" onclick="closeHelpModal()">&times;</span>
-            <div class="flex items-center gap-3 mb-4 border-b border-outline-variant/30 pb-3">
+            <div class="flex items-center gap-3 mb-3 border-b border-outline-variant/30 pb-3">
                 <span class="material-symbols-outlined text-primary-fixed-dim text-3xl" style="font-variation-settings:'FILL' 1">menu_book</span>
                 <div>
                     <h2 class="font-headline font-bold text-xl text-on-surface">Guía de uso</h2>
                     <p class="text-xs font-label text-on-surface-variant">Planilla de Torneos — CarlosPN Interactive®</p>
                 </div>
             </div>
-            <div id="helpIndex" class="mb-4 flex flex-wrap gap-2"></div>
-            <div id="helpContent" class="bg-surface-container-low rounded-lg p-4 min-h-[200px] text-on-surface leading-relaxed text-sm border border-outline-variant/20"></div>
+            <div id="helpIndex" class="mb-3 flex flex-wrap gap-1.5 items-center"></div>
+            <div id="helpContent" class="rounded-lg min-h-[320px] text-on-surface overflow-y-auto" style="max-height:52vh;"></div>
             <div class="flex justify-between items-center mt-4 pt-3 border-t border-outline-variant/30">
                 <button onclick="helpPrev()" id="helpPrevBtn" class="px-5 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:border-on-surface-variant font-label font-bold text-sm transition-all disabled:opacity-30">← Anterior</button>
-                <span id="helpStepIndicator" class="text-xs font-label text-on-surface-variant"></span>
+                <span id="helpStepIndicator" class="text-xs font-label text-[#6b7280]"></span>
                 <button onclick="helpNext()" id="helpNextBtn" class="px-5 py-2 rounded-lg bg-primary-fixed-dim text-on-primary font-label font-bold text-sm hover:brightness-110 transition-all active:scale-95">Siguiente →</button>
             </div>
         </div>
@@ -767,10 +766,10 @@
         var url = SCRIPT_URL + '?action=write&op=' + encodeURIComponent(op)
                 + '&data=' + encodeURIComponent(json)
                 + '&nocache=' + Date.now();
-        syncLog('→ GAS write: '+op+' ('+json.length+'b)', '#e9c400');
+        if (typeof syncLog === 'function') syncLog('→ GAS write: '+op+' ('+json.length+'b)', '#e9c400');
         var resp = await fetch(url, {method:'GET', redirect:'follow', cache:'no-cache'});
         var text = await resp.text();
-        syncLog('← '+text.substring(0,100), '#bac9cc');
+        if (typeof syncLog === 'function') syncLog('← '+text.substring(0,100), '#bac9cc');
         var result = JSON.parse(text);
         if (result.status === 'error') throw new Error(result.message);
         return result.data;
@@ -1517,6 +1516,16 @@
             if(notifDrop&&!notifDrop.contains(e.target)&&!e.target.closest('[onclick*="toggleNotifPanel"]'))
                 notifDrop.classList.add('hidden');
         });
+        // Bloquear Escape en el roleModal — es obligatorio seleccionar un rol
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var roleModal = document.getElementById('roleModal');
+                if (roleModal && roleModal.style.display === 'flex') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }
+        });
         getClientesFromSheet();
     });
 
@@ -1815,6 +1824,11 @@
             }
             var s = d.state;
             if (!s) return;
+            // Si el estado que llega es más viejo que nuestro último push, ignorar
+            if (s.pushedAt && lastPushTime > 0 && Number(s.pushedAt) < lastPushTime) {
+                lastSyncTimestamp = d.timestamp;
+                return;
+            }
             lastSyncTimestamp = d.timestamp;
             applyRemoteState(s);
             setSyncIndicator('ok','↓ '+d.timestamp.slice(11,16));
@@ -2069,28 +2083,107 @@
 
     function closeRecoverModal() { document.getElementById('recoverModal').style.display = 'none'; }
 
-    // ═══ SISTEMA DE AYUDA (RESTAURADO) ═══
+    // ═══ SISTEMA DE AYUDA ═══
 
     const HELP_STEPS = [
         {
-            title: "Búsqueda y Registro",
-            icon: "person_search",
-            content: "Busca jugadores por RUT o nombre. Si existen en la base de datos central, sus datos se cargarán automáticamente para evitar errores de escritura."
+            title: "Inicio de sesión y roles",
+            icon: "admin_panel_settings",
+            items: [
+                { label: "👑 Supervisor", desc: "Al abrir la planilla se pide un nombre y una clave. Si no hay sesión activa, se crea una nueva que queda anclada al torneo. Solo el Supervisor con esa clave puede cambiar la configuración." },
+                { label: "🎮 Operador", desc: "Puede agregar participantes y registrar puntajes, pero no puede cambiar la configuración del torneo mientras haya una sesión de Supervisor activa." },
+                { label: "👁 Solo Lectura", desc: "Solo visualiza lo que ocurre en tiempo real. No puede editar nada." },
+                { label: "🔑 Código maestro", desc: "Si el Supervisor olvida su clave, se puede usar el código maestro 'CarlosPN2024' para acceder o cerrar la sesión." }
+            ]
         },
         {
-            title: "Gestión de Entradas",
-            icon: "confirmation_number",
-            content: "El sistema controla que cada jugador use máximo 2 entradas. Valida el Cupón Sorteo (CS) y el Ticket Canje (TC) por separado."
+            title: "Selección del torneo",
+            icon: "emoji_events",
+            items: [
+                { label: "Tipos de torneo", desc: "Usa el selector de torneo para elegir entre Ruleta, Draw Poker, Blackjack y sus versiones VIP. Cada uno tiene su propia planilla de participantes y configuración." },
+                { label: "Torneos de cartas", desc: "Draw Poker y Blackjack muestran la columna de Puntaje y el rack de fichas con denominación e imagen." },
+                { label: "Torneo de ruleta", desc: "Muestra columnas de Bolita 1, Bolita 2, etc. según las bolitas configuradas. Se puede ajustar la cantidad en Configuración." },
+                { label: "Versiones VIP", desc: "Funcionan igual que sus versiones normales, pero con planilla y datos separados. Útil para manejar dos torneos simultáneos." }
+            ]
         },
         {
-            title: "Control de Mesas",
+            title: "Agregar participantes",
+            icon: "person_add",
+            items: [
+                { label: "Buscar por nombre o RUT", desc: "Escribe en el campo 'Buscar' y el sistema consulta la base de datos central. Al seleccionar un resultado, nombre y apellido se cargan solos." },
+                { label: "Cliente nuevo", desc: "Si el jugador no está en la base, escribe su nombre, apellido y RUT manualmente. El sistema lo agrega automáticamente a la base de datos." },
+                { label: "Tipos de cupón", desc: "Selecciona Cupón Sorteo (CS), Ticket Canje (TC) o Ninguno antes de presionar Añadir. Cada jugador puede tener máximo 2 entradas y no puede repetir el mismo tipo de cupón." },
+                { label: "Validación automática", desc: "El sistema avisa si el jugador ya agotó sus entradas o si ya usó ese tipo de cupón. No permite duplicados." }
+            ]
+        },
+        {
+            title: "Control de mesas",
             icon: "grid_view",
-            content: "Organiza el torneo cerrando mesas. Puedes arrastrar filas para mover jugadores de una mesa a otra o reordenarlos por posición."
+            items: [
+                { label: "Cerrar mesa", desc: "El botón 'Cerrar Mesa' al final de la tabla separa el grupo actual como una mesa completa. Los jugadores quedan agrupados con su número de mesa." },
+                { label: "Reabrir mesa", desc: "Si cometiste un error, presiona el botón 'Reabrir Mesa' dentro del separador para volver a integrar esos jugadores a la planilla abierta." },
+                { label: "Arrastrar jugadores", desc: "Marca el checkbox de uno o varios jugadores y arrástralos a otra posición para reordenarlos o moverlos entre mesas." },
+                { label: "Eliminar entrada", desc: "El botón 'Eliminar' en cada fila quita esa entrada del torneo. Si el jugador tenía más entradas, las otras permanecen." }
+            ]
         },
         {
-            title: "Sincronización Total",
+            title: "Puntajes y colores",
+            icon: "scoreboard",
+            items: [
+                { label: "Ingresar puntajes", desc: "Escribe directamente en las celdas de puntaje de cada jugador. El total se actualiza al instante. Los números se formatean automáticamente con separador de miles." },
+                { label: "Color de jugador (Ruleta)", desc: "En torneos de ruleta, cada jugador tiene un color de apuesta asignado. Haz click en el círculo de color para cambiarlo desde la paleta." },
+                { label: "Clasificación automática", desc: "La pantalla del torneo ordena automáticamente a los jugadores de mayor a menor puntaje total. Los 3 primeros se destacan con medalla." },
+                { label: "Editar cupón", desc: "Usa el botón 'Editar' para cambiar el tipo de cupón (CS/TC/Ninguno) de una entrada ya registrada." }
+            ]
+        },
+        {
+            title: "Configuración del torneo",
+            icon: "settings",
+            items: [
+                { label: "Fecha y encargado", desc: "Define la fecha del torneo y el nombre del director. Aparecen en los informes PDF y en la pantalla del torneo." },
+                { label: "Premios y pozo", desc: "Ingresa el pozo total y los premios para 1°, 2° y 3° lugar. Se muestran en la pantalla girando automáticamente cada 4 segundos." },
+                { label: "Hora de cierre", desc: "Define la hora límite de inscripciones. La pantalla mostrará una cuenta regresiva cuando queden menos de 20 minutos." },
+                { label: "Fichas (cartas)", desc: "Agrega fichas con su valor y nombre de imagen. Los colores sugeridos aparecen como círculos — click para agregar. El nombre del archivo debe coincidir con el que está en la carpeta /fichas/ del repositorio (ej: roja, negra, azul)." }
+            ]
+        },
+        {
+            title: "Límites de apuesta",
+            icon: "price_check",
+            items: [
+                { label: "Torneos de cartas", desc: "Configura la apuesta mínima y máxima. Se muestran en la card de fichas de la pantalla del torneo." },
+                { label: "Torneos de ruleta", desc: "Configura el pleno mínimo y máximo. La pantalla los muestra junto al nombre del torneo." },
+                { label: "¿Dónde se ven?", desc: "En la pantalla del torneo aparece una card con 'MÍN' y 'MÁX' en verde y rojo respectivamente, visible en todo momento para los jugadores." }
+            ]
+        },
+        {
+            title: "Mesa final y ganadores",
+            icon: "military_tech",
+            items: [
+                { label: "Generar mesa final", desc: "Presiona 'Iniciar Mesa Final' para seleccionar automáticamente los mejores jugadores por puntaje total. La cantidad depende del tipo de torneo (5 o 6 finalistas)." },
+                { label: "Puntajes de la final", desc: "En la vista de mesa final, los puntajes de clasificación quedan bloqueados. Solo se editan los puntajes nuevos de la ronda final." },
+                { label: "Declarar ganadores", desc: "Presiona 'Declarar Ganadores' para mostrar el pódium en la pantalla del torneo con los 3 primeros lugares y sus premios." },
+                { label: "Informe PDF", desc: "Se genera automáticamente un PDF con el acta del torneo, participantes, puntajes y ganadores. Se descarga directo al dispositivo." }
+            ]
+        },
+        {
+            title: "Sincronización en tiempo real",
             icon: "sync",
-            content: "El modo Sync conecta Operadores, Supervisores y Pantalla en tiempo real. Los cambios en puntajes se ven al instante en todos lados."
+            items: [
+                { label: "¿Cómo funciona?", desc: "La planilla guarda el estado completo del torneo en Google Sheets cada vez que hay un cambio. La pantalla y los demás dispositivos leen ese estado cada 4 segundos." },
+                { label: "Indicador de sync", desc: "El punto de color en el header indica el estado: verde = sincronizado, amarillo = guardando, cyan = recibiendo, rojo = sin conexión." },
+                { label: "Bloqueo de torneo", desc: "El Supervisor puede presionar '🔒 Bloquear' para que nadie más pueda editar nada hasta que él desbloquee. Útil durante la mesa final." },
+                { label: "Actividad reciente", desc: "El ícono de campana muestra las últimas acciones: quién agregó o eliminó participantes, cambios de configuración, etc." }
+            ]
+        },
+        {
+            title: "Guardar y recuperar torneos",
+            icon: "cloud_done",
+            items: [
+                { label: "Guardar en la nube", desc: "Presiona 'Archivar Torneo' en Configuración para guardar una copia del torneo completo en Google Sheets. Queda accesible desde cualquier dispositivo." },
+                { label: "Recuperar torneo", desc: "Presiona 'Recuperar desde Nube' para ver el historial de torneos guardados y cargar uno anterior. Los datos actuales se reemplazan." },
+                { label: "Guardar localmente", desc: "También puedes exportar el torneo como archivo JSON al dispositivo, y cargarlo más tarde desde ese archivo." },
+                { label: "Reinicio forzado", desc: "En caso de error grave, 'Reinicio Forzado' borra todos los datos locales del navegador. Úsalo solo como último recurso — es irreversible." }
+            ]
         }
     ];
 
@@ -2111,21 +2204,33 @@
         const indicator = document.getElementById('helpStepIndicator');
 
         content.innerHTML = `
-            <div class="flex items-center gap-4 mb-4">
-                <span class="material-symbols-outlined text-primary-fixed-dim text-4xl">${step.icon}</span>
-                <h4 class="font-headline font-bold text-lg uppercase">${step.title}</h4>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="material-symbols-outlined text-[#00daf3] text-3xl flex-shrink-0" style="font-variation-settings:'FILL' 1">${step.icon}</span>
+                <h4 class="font-headline font-bold text-base uppercase tracking-wide text-on-surface">${step.title}</h4>
             </div>
-            <p class="text-on-surface-variant font-body">${step.content}</p>
+            <div class="space-y-3">
+                ${step.items.map(item => `
+                    <div class="flex gap-3 p-3 rounded-lg bg-[#0d0e14] border border-[#4a5568]/30">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-label font-bold text-xs text-[#00daf3] uppercase tracking-wide mb-1">${item.label}</p>
+                            <p class="font-body text-sm text-[#bac9cc] leading-relaxed">${item.desc}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
         `;
 
-        index.innerHTML = HELP_STEPS.map((_, i) => `
-            <div class="w-2 h-2 rounded-full ${i === currentHelpStep ? 'bg-primary-fixed-dim w-6' : 'bg-[#4a5568]'}" 
-                 onclick="currentHelpStep=${i};renderHelpStep()" style="cursor:pointer"></div>
+        // Dots de navegación
+        index.innerHTML = HELP_STEPS.map((s, i) => `
+            <div title="${s.title}"
+                onclick="currentHelpStep=${i};renderHelpStep()"
+                style="cursor:pointer;height:6px;border-radius:99px;transition:all 0.2s;background:${i === currentHelpStep ? '#00daf3' : '#4a5568'};width:${i === currentHelpStep ? '20px' : '6px'}">
+            </div>
         `).join('');
 
-        indicator.textContent = `Paso ${currentHelpStep + 1} de ${HELP_STEPS.length}`;
+        indicator.textContent = `${currentHelpStep + 1} / ${HELP_STEPS.length}`;
         document.getElementById('helpPrevBtn').disabled = currentHelpStep === 0;
-        document.getElementById('helpNextBtn').textContent = currentHelpStep === HELP_STEPS.length - 1 ? "Entendido" : "Siguiente →";
+        document.getElementById('helpNextBtn').textContent = currentHelpStep === HELP_STEPS.length - 1 ? '✓ Entendido' : 'Siguiente →';
     }
 
     function helpNext() {
