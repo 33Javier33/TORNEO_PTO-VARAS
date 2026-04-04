@@ -983,7 +983,7 @@
         input.type = isPassword ? 'text' : 'password';
         toggleIcon.innerHTML = isPassword 
             ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye-slash" viewBox="0 0 16 16"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.94 5.94 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.707z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.707zm10.296 6.884-12-12 .708-.708 12 12-.708.708z"/></svg>`
-            : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>`;
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.12 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>`;
     }
 
 
@@ -1986,158 +1986,163 @@
         document.getElementById('mobileMenu').classList.add('hidden');
     }
 
-    function updateHeaderTournamentName() {
-        const tid = localStorage.getItem('selectedTournament') || 'ruleta';
-        const el = document.getElementById('headerTournamentName');
-        if (el && TOURNAMENTS[tid]) el.textContent = TOURNAMENTS[tid].name;
-    }
-    
-    function updateFinalistScore(e,t,o){
-        const n=document.getElementById("tournamentSelector").value;
-        let l=getFinalists(n);
-        if(l[e]){
-            l[e][t]=o.replace(/\D/g,"");
-            saveFinalists(n,l);
-            renderFinalists();
-            // TRANSMISIÓN AUTOMÁTICA
-            onScoreChanged();
+    // ═══ SISTEMA DE GUARDADO Y RECUPERACIÓN (CORREGIDO PARA TU SG) ═══
+
+    async function saveTournamentToSheets() {
+        const payload = buildPayload({
+            type: 'save',
+            description: 'Torneo guardado en Sheets',
+            by: SYNC_ROLE,
+            at: Date.now()
+        });
+        showToast("Guardando torneo en Google Sheets...", true, 2000);
+        try {
+            const result = await gasWrite('saveTournament', payload);
+            if (result) showToast("✅ Torneo archivado correctamente.", true);
+        } catch (e) {
+            showToast("❌ Error al guardar: " + e.message);
         }
     }
-    
-    // PDF Y MAS FUNCIONES RESTAURADAS
-    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-    function closeVipReportModal() { document.getElementById('vipReportModal').style.display = 'none'; }
-    function closeRecoverModal() { document.getElementById('recoverModal').style.display = 'none'; }
-    function closeColorModal() { document.getElementById('colorModal').style.display = 'none'; }
 
-    // ══════════════════════════════════════════════════════════════
-    // PERSISTENCIA DE ESTADO Y CARGA INICIAL (PROTEGIDA TOTALMENTE)
-    // ══════════════════════════════════════════════════════════════
-    document.addEventListener("DOMContentLoaded",()=>{
-        const e=document.getElementById("tournamentSelector");Object.keys(TOURNAMENTS).forEach(t=>e.add(new Option(TOURNAMENTS[t].name,t))),e.value=localStorage.getItem("selectedTournament")||"ruleta",document.getElementById("tournamentDate").value=localStorage.getItem("tournamentDate")||(new Date).toISOString().split("T")[0],document.getElementById("tournamentDirector").value=localStorage.getItem("tournamentDirector")||"";const t=document.getElementById("prizePoolInput");t.value=formatNumberForDisplay(localStorage.getItem("prizePool"));const o=JSON.parse(localStorage.getItem("tournamentPrizes")||"{}");document.getElementById("firstPrize").value=formatNumberForDisplay(o.first),document.getElementById("secondPrize").value=formatNumberForDisplay(o.second),document.getElementById("thirdPrize").value=formatNumberForDisplay(o.third);const n=getGameLimits();document.getElementById("minBetInput").value=formatNumberForDisplay(n.minBet),document.getElementById("maxBetInput").value=formatNumberForDisplay(n.maxBet),document.getElementById("minPlenoInput").value=formatNumberForDisplay(n.minPleno),document.getElementById("maxPlenoInput").value=formatNumberForDisplay(n.maxPleno),document.getElementById("registrationEndTime").value=localStorage.getItem("registrationEndTime")||"",document.getElementById("rouletteBallCount").value=localStorage.getItem("rouletteBallCount")||"3",
-        
-        // REFRESCAR CONFIGURACIÓN
-        changeTournament();
-
-        // PERSISTENCIA DE ROL (LOCALSTORAGE PARA OPERADOR/SUPERVISOR) Y VISTA
-        const savedRole = localStorage.getItem('syncRole');
-        const savedView = localStorage.getItem("tournament_view_state") || "classification";
-
-        if (savedRole && savedRole !== 'off') {
-            setRole(savedRole, true);
-        } else {
-            mostrarModalRolObligatorio();
-        }
-
-        if (savedView === "final") {
-            showFinalView(); // renderFinalists() lee de localStorage y restaura puntajes inmediatamente
-        } else if (savedView === "winners") {
-            showWinnersView();
-        } else {
-            showClassificationView();
-        }
-
-        // Listen for Enter key on password fields
-        document.getElementById('passwordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); checkPassword(); }});
-        document.getElementById('confirmNewPasswordInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); changePassword(); }});
-        document.getElementById('masterCodeInput').addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); resetPassword(); }});
-
-        document.getElementById("addNombre").addEventListener("input", async (e) => {
-            const raw = e.target.value;
-            const resultsContainer = document.getElementById("searchResults");
-            resultsContainer.innerHTML = "";
-            document.getElementById("addRut").classList.add("hidden");
-            selectedClientRut = null;
-
-            const makeItem = (html, onClick) => {
-                const div = document.createElement("div");
-                div.style.cssText = "padding:10px 14px;cursor:pointer;color:#e3e1ea;font-family:Inter,sans-serif;font-size:0.85rem;border-bottom:1px solid rgba(74,85,104,0.3);transition:background 0.15s;";
-                div.innerHTML = html;
-                div.onmouseenter = () => div.style.background = 'rgba(0,218,243,0.1)';
-                div.onmouseleave = () => div.style.background = '';
-                div.onclick = onClick;
-                return div;
-            };
-
-            // Detectar RUT
-            const isRut = /^[\d\.\-kK]+$/.test(raw) && raw.replace(/[^\dkK]/g, '').length >= 1;
-
-            if (isRut) {
-                let clean = raw.replace(/[^\dkK]/g, '').replace(/^0+/, '');
-                let formatted = clean;
-                if (clean.length > 1) {
-                    const body = clean.slice(0, -1);
-                    const dv = clean.slice(-1).toUpperCase();
-                    formatted = `${new Intl.NumberFormat('es-CL').format(body)}-${dv}`;
-                }
-                if (e.target.value !== formatted) e.target.value = formatted;
-
-                if (clean.length >= 3) {
-                    const clientesBase = await getClientesFromSheet();
-                    const filtered = clientesBase.filter(c => c.rut && c.rut.replace(/[^\dkK]/gi,'').startsWith(clean.replace(/[^\dkK]/gi,'')));
-                    if (filtered.length > 0) {
-                        filtered.slice(0,10).forEach(client => {
-                            resultsContainer.appendChild(makeItem(
-                                `<span style="font-weight:700;color:#e3e1ea">${client.nombre} ${client.apellido}</span> <span style="color:#6b7280;font-size:0.75rem;margin-left:8px">${client.rut}</span>`,
-                                () => {
-                                    document.getElementById("addNombre").value = client.nombre;
-                                    document.getElementById("addApellido").value = client.apellido;
-                                    selectedClientRut = client.rut;
-                                    resultsContainer.classList.add("hidden");
-                                }
-                            ));
-                        });
-                        resultsContainer.classList.remove("hidden");
-                    } else {
-                        const rutField = document.getElementById("addRut");
-                        rutField.value = formatted;
-                        rutField.classList.remove("hidden");
-                        resultsContainer.classList.add("hidden");
-                    }
-                } else {
-                    resultsContainer.classList.add("hidden");
-                }
+    async function openRecoverModal() {
+        const list = document.getElementById('recoverList');
+        document.getElementById('recoverModal').style.display = 'flex';
+        list.innerHTML = '<p class="text-center text-xs py-8 animate-pulse font-bold">Consultando historial en Sheets...</p>';
+        try {
+            // Acción exacta según tu SG
+            const data = await gasRead('listTournaments');
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p class="text-center text-xs py-8 text-[#6b7280]">No hay torneos en la nube.</p>';
                 return;
             }
+            list.innerHTML = data.map(t => `
+                <div class="p-3 bg-[#0d0e14] border border-[#4a5568]/30 rounded-lg mb-2 hover:border-[#00daf3]/50 transition-all">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-black text-[#00daf3] uppercase tracking-tighter">${t.tournamentType.replace(/_/g, ' ')}</span>
+                            <span class="text-[10px] text-[#6b7280]">Director: ${t.director || 'No definido'}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-primary-fixed-dim font-bold bg-primary-fixed-dim/10 px-2 py-0.5 rounded-full">${t.players} JUGADORES</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-4 border-t border-[#4a5568]/20 pt-2">
+                        <div class="flex gap-3">
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-[#6b7280] uppercase font-bold tracking-widest">Fecha</span>
+                                <span class="text-[10px] text-[#e3e1ea]">${t.date}</span>
+                            </div>
+                            <div class="flex flex-col border-l border-[#4a5568]/30 pl-3">
+                                <span class="text-[8px] text-[#6b7280] uppercase font-bold tracking-widest">Guardado</span>
+                                <span class="text-[10px] text-[#e3e1ea]">${t.savedAt}</span>
+                            </div>
+                        </div>
+                        <button onclick="loadTournamentFromSheets('${t.sheetName}')" 
+                            class="px-4 py-1.5 bg-[#00daf3] text-[#00363d] text-[10px] font-black rounded-lg uppercase hover:brightness-110 active:scale-95 transition-all">
+                            Cargar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            list.innerHTML = '<p class="text-center text-xs py-8 text-red-400">Error: ' + e.message + '</p>';
+        }
+    }
 
-            // Búsqueda por nombre
-            const searchTerm = raw.toLowerCase();
-            if (searchTerm.length > 0) {
-                const clientesBase = await getClientesFromSheet();
-                const filtered = clientesBase.filter(c => (c.nombre+" "+c.apellido).toLowerCase().includes(searchTerm));
-                if (filtered.length > 0) {
-                    filtered.slice(0,10).forEach(client => {
-                        resultsContainer.appendChild(makeItem(
-                            `<span style="font-weight:700">${client.nombre} ${client.apellido}</span> <span style="color:#6b7280;font-size:0.75rem;margin-left:8px">${client.rut||''}</span>`,
-                            () => {
-                                document.getElementById("addNombre").value = client.nombre;
-                                document.getElementById("addApellido").value = client.apellido;
-                                selectedClientRut = client.rut;
-                                resultsContainer.classList.add("hidden");
-                            }
-                        ));
-                    });
-                    resultsContainer.classList.remove("hidden");
-                } else {
-                    document.getElementById("addRut").classList.remove("hidden");
-                    resultsContainer.classList.add("hidden");
-                }
+    async function loadTournamentFromSheets(sheetName) {
+        if (!confirm("¿Cargar este respaldo? Se perderán los datos actuales de la pantalla.")) return;
+        showToast("Descargando datos...", true);
+        try {
+            // Acción exacta según tu SG
+            const data = await gasRead('getTournament', {sheetName: sheetName});
+            if (data) {
+                applyRemoteState(data);
+                closeRecoverModal();
+                showToast("✅ Torneo restaurado correctamente.", true);
             } else {
-                resultsContainer.classList.add("hidden");
+                showToast("❌ No se recibieron datos del servidor.");
             }
-        });
-        window.addEventListener("click",e=>{
-            "addNombre"!==e.target.id&&document.getElementById("searchResults")&&document.getElementById("searchResults").classList.add("hidden");
-            // Solo cerrar modales que NO sean el roleModal (ese es obligatorio)
-            if(e.target.classList.contains("modal-container")&&e.target.id!=='roleModal')
-                e.target.style.display="none";
-            // Cerrar panel notificaciones si click fuera
-            var notifDrop=document.getElementById('syncNotifDropdown');
-            if(notifDrop&&!notifDrop.contains(e.target)&&!e.target.closest('[onclick*="toggleNotifPanel"]'))
-                notifDrop.classList.add('hidden');
-        });
-        getClientesFromSheet();
-    });
+        } catch (e) {
+            showToast("❌ Error al cargar: " + e.message);
+        }
+    }
+
+    function closeRecoverModal() { document.getElementById('recoverModal').style.display = 'none'; }
+
+    // ═══ SISTEMA DE AYUDA (RESTAURADO) ═══
+
+    const HELP_STEPS = [
+        {
+            title: "Búsqueda y Registro",
+            icon: "person_search",
+            content: "Busca jugadores por RUT o nombre. Si existen en la base de datos central, sus datos se cargarán automáticamente para evitar errores de escritura."
+        },
+        {
+            title: "Gestión de Entradas",
+            icon: "confirmation_number",
+            content: "El sistema controla que cada jugador use máximo 2 entradas. Valida el Cupón Sorteo (CS) y el Ticket Canje (TC) por separado."
+        },
+        {
+            title: "Control de Mesas",
+            icon: "grid_view",
+            content: "Organiza el torneo cerrando mesas. Puedes arrastrar filas para mover jugadores de una mesa a otra o reordenarlos por posición."
+        },
+        {
+            title: "Sincronización Total",
+            icon: "sync",
+            content: "El modo Sync conecta Operadores, Supervisores y Pantalla en tiempo real. Los cambios en puntajes se ven al instante en todos lados."
+        }
+    ];
+
+    let currentHelpStep = 0;
+
+    function openHelpModal() {
+        currentHelpStep = 0;
+        renderHelpStep();
+        document.getElementById('helpModal').style.display = 'flex';
+    }
+
+    function closeHelpModal() { document.getElementById('helpModal').style.display = 'none'; }
+
+    function renderHelpStep() {
+        const step = HELP_STEPS[currentHelpStep];
+        const content = document.getElementById('helpContent');
+        const index = document.getElementById('helpIndex');
+        const indicator = document.getElementById('helpStepIndicator');
+
+        content.innerHTML = `
+            <div class="flex items-center gap-4 mb-4">
+                <span class="material-symbols-outlined text-primary-fixed-dim text-4xl">${step.icon}</span>
+                <h4 class="font-headline font-bold text-lg uppercase">${step.title}</h4>
+            </div>
+            <p class="text-on-surface-variant font-body">${step.content}</p>
+        `;
+
+        index.innerHTML = HELP_STEPS.map((_, i) => `
+            <div class="w-2 h-2 rounded-full ${i === currentHelpStep ? 'bg-primary-fixed-dim w-6' : 'bg-[#4a5568]'}" 
+                 onclick="currentHelpStep=${i};renderHelpStep()" style="cursor:pointer"></div>
+        `).join('');
+
+        indicator.textContent = `Paso ${currentHelpStep + 1} de ${HELP_STEPS.length}`;
+        document.getElementById('helpPrevBtn').disabled = currentHelpStep === 0;
+        document.getElementById('helpNextBtn').textContent = currentHelpStep === HELP_STEPS.length - 1 ? "Entendido" : "Siguiente →";
+    }
+
+    function helpNext() {
+        if (currentHelpStep < HELP_STEPS.length - 1) {
+            currentHelpStep++;
+            renderHelpStep();
+        } else {
+            closeHelpModal();
+        }
+    }
+
+    function helpPrev() {
+        if (currentHelpStep > 0) {
+            currentHelpStep--;
+            renderHelpStep();
+        }
+    }
 
     </script>
 </body>
