@@ -221,13 +221,17 @@
                     <span class="material-symbols-outlined card-icon text-tertiary-fixed-dim">groups</span>
                     <p class="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.2em] mb-1 font-bold">INSCRIPCIONES</p>
                     <p id="totalPlayersDisplay" class="font-headline text-2xl font-bold text-on-surface">0</p>
-                    <p id="endTimeDisplay" class="font-label text-xs font-bold text-on-surface-variant mt-1"></p>
-                    <div id="warningMessage" class="hidden mt-1">
-                        <p id="countdownTimer" class="font-headline font-bold text-red-400 animate-pulse text-lg"></p>
+                    <div class="mt-2 pt-2 border-t border-outline-variant/20 w-full">
+                        <p class="text-[9px] font-label text-on-surface-variant uppercase tracking-widest mb-0.5">Cierre de Inscripciones</p>
+                        <p id="endTimeDisplay" class="font-headline text-xl font-bold text-tertiary-fixed-dim leading-tight">--:--</p>
+                    </div>
+                    <div id="warningMessage" class="hidden mt-1 w-full">
+                        <p class="text-[9px] font-label text-amber-400 uppercase tracking-widest mb-0.5">Tiempo restante</p>
+                        <p id="countdownTimer" class="font-headline font-bold text-red-400 animate-pulse text-2xl leading-none"></p>
                     </div>
                 </div>
 
-                <div id="summary-card" class="info-card glass-card border border-outline-variant/20 hidden"></div>
+                <div id="summary-card" class="hidden"></div>
             </div>
 
             <!-- Tabla clasificación -->
@@ -398,15 +402,13 @@
             const cards = [
                 document.getElementById('prize-card-container'),
                 document.getElementById('chip-card'),
-                document.getElementById('registration-card'),
-                document.getElementById('summary-card')
+                document.getElementById('registration-card')
             ];
             const visibleCount = cards.filter(c => c && !c.classList.contains('hidden')).length;
             grid.className = `grid gap-3 mb-4 transition-all duration-500`;
             if (visibleCount === 1) grid.classList.add('grid-cols-1');
             else if (visibleCount === 2) grid.classList.add('grid-cols-1', 'sm:grid-cols-2');
-            else if (visibleCount === 3) grid.classList.add('grid-cols-1', 'sm:grid-cols-3');
-            else grid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-4');
+            else grid.classList.add('grid-cols-1', 'sm:grid-cols-3');
         }
         
         function updatePrizeCard() {
@@ -670,40 +672,34 @@
         }
         
         function checkRegistrationStatus() {
-            const registrationCard = document.getElementById('registration-card');
-            const summaryCard = document.getElementById('summary-card');
             const endTimeDisplay = document.getElementById('endTimeDisplay');
             const warningMessage = document.getElementById('warningMessage');
             const endTimeString = localStorage.getItem('registrationEndTime');
+
+            // La card siempre es visible — solo cambia su contenido
             if (!endTimeString) {
-                registrationCard.classList.remove('hidden');
-                summaryCard.classList.add('hidden');
-                if(endTimeDisplay) endTimeDisplay.textContent = 'Cierre no definido';
+                if(endTimeDisplay) { endTimeDisplay.textContent = '--:--'; endTimeDisplay.style.color = ''; }
                 if(warningMessage) warningMessage.classList.add('hidden');
                 if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
                 updateTopCardsLayout();
                 return;
             }
+
             const [hours, minutes] = endTimeString.split(':');
             const { year, month, day } = getTournamentDateObj();
             const now = new Date();
             const endTime = new Date(year, month, day, parseInt(hours), parseInt(minutes), 0);
             const minutesRemaining = (endTime.getTime() - now.getTime()) / 60000;
+
             if (minutesRemaining <= 0) {
-                // Mantener registration-card visible pero en estado "cerrado"
-                registrationCard.classList.remove('hidden');
-                summaryCard.classList.remove('hidden');
-                updateSummaryCard();
                 if(endTimeDisplay) {
-                    endTimeDisplay.textContent = `⛔ Cerrado · ${endTimeString} hrs.`;
+                    endTimeDisplay.textContent = `${endTimeString} hrs.`;
                     endTimeDisplay.style.color = '#6b7280';
                 }
                 if(warningMessage) warningMessage.classList.add('hidden');
                 if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
             } else {
-                registrationCard.classList.remove('hidden');
-                summaryCard.classList.add('hidden');
-                if(endTimeDisplay) endTimeDisplay.textContent = `Cierre a las ${endTimeString} hrs.`;
+                if(endTimeDisplay) { endTimeDisplay.textContent = `${endTimeString} hrs.`; endTimeDisplay.style.color = ''; }
                 if(warningMessage) {
                     if (minutesRemaining <= 20) {
                         warningMessage.classList.remove('hidden');
