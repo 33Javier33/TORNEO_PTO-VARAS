@@ -589,6 +589,12 @@
             <div class="text-center mb-5">
                 <h1 id="mainTournamentTitle" class="font-headline font-black text-3xl text-on-surface tracking-tighter uppercase mb-1">Planilla de Torneos</h1>
                 <p id="mainDateDisplay" class="text-xs font-label text-on-surface-variant uppercase tracking-widest"></p>
+                <div id="closingTimeBadge" class="hidden mt-2 flex justify-center">
+                    <div id="closingTimePill" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label font-bold uppercase tracking-wider border transition-all">
+                        <span class="material-symbols-outlined text-sm leading-none">schedule</span>
+                        <span id="closingTimeText"></span>
+                    </div>
+                </div>
             </div>
 
             <!-- Stats -->
@@ -1434,7 +1440,55 @@
     function formatNumericInput(e){e.value=formatNumberForDisplay(e.value)}
     function savePrizePool(){localStorage.setItem("prizePool",document.getElementById("prizePoolInput").value.replace(/\./g,"")||"0");showToast("Pozo total guardado.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
     function savePrizes(){const e={first:document.getElementById("firstPrize").value.replace(/\./g,"")||"0",second:document.getElementById("secondPrize").value.replace(/\./g,"")||"0",third:document.getElementById("thirdPrize").value.replace(/\./g,"")||"0"};localStorage.setItem("tournamentPrizes",JSON.stringify(e));showToast("Premios guardados.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
-    function saveEndTime(){localStorage.setItem("registrationEndTime",document.getElementById("registrationEndTime").value);showToast("Hora de cierre guardada.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
+    function saveEndTime(){localStorage.setItem("registrationEndTime",document.getElementById("registrationEndTime").value);showToast("Hora de cierre guardada.",!0);_closing15Alerted=false;startClosingTimer();if(typeof onConfigChanged==='function')onConfigChanged();}
+
+    // ── CUENTA REGRESIVA CIERRE DE INSCRIPCIONES ─────────────────────────────
+    var _closingTimer = null;
+    var _closing15Alerted = false;
+
+    function updateClosingTimeBadge() {
+        var endTime = localStorage.getItem('registrationEndTime') || '';
+        var badge   = document.getElementById('closingTimeBadge');
+        var pill    = document.getElementById('closingTimePill');
+        var text    = document.getElementById('closingTimeText');
+        if (!badge || !pill || !text) return;
+
+        if (!endTime) { badge.classList.add('hidden'); return; }
+
+        var now     = new Date();
+        var parts   = endTime.split(':');
+        var closing = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+                               parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
+        var diffMs  = closing - now;
+        var diffMin = Math.ceil(diffMs / 60000);
+
+        badge.classList.remove('hidden');
+
+        if (diffMs <= 0) {
+            pill.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label font-bold uppercase tracking-wider border bg-[#1f2937] text-[#6b7280] border-[#374151]';
+            text.textContent = 'Inscripción cerrada · ' + endTime;
+        } else if (diffMin <= 5) {
+            pill.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label font-bold uppercase tracking-wider border bg-red-500/20 text-red-400 border-red-500/60 animate-pulse';
+            text.textContent = '🚨 Cierre en ' + diffMin + ' min · ' + endTime;
+        } else if (diffMin <= 15) {
+            pill.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label font-bold uppercase tracking-wider border bg-amber-500/20 text-amber-400 border-amber-500/60 animate-pulse';
+            text.textContent = '⚠ Cierre en ' + diffMin + ' min · ' + endTime;
+            if (!_closing15Alerted) {
+                _closing15Alerted = true;
+                showToast('⚠️ Quedan ' + diffMin + ' minutos para el cierre de inscripciones', false, 8000);
+            }
+        } else {
+            pill.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label font-bold uppercase tracking-wider border bg-[#0d1117] text-[#00daf3] border-[#00daf3]/40';
+            text.textContent = 'Cierre inscripción: ' + endTime;
+            _closing15Alerted = false;
+        }
+    }
+
+    function startClosingTimer() {
+        updateClosingTimeBadge();
+        if (_closingTimer) clearInterval(_closingTimer);
+        _closingTimer = setInterval(updateClosingTimeBadge, 30000);
+    }
     function saveRouletteConfig(){localStorage.setItem("rouletteBallCount",document.getElementById("rouletteBallCount").value);renderClients(document.getElementById("tournamentSelector").value);initializeSortable();showToast("Configuración de ruleta guardada.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
     function saveGameLimits(){const e={minBet:document.getElementById("minBetInput").value.replace(/\./g,""),maxBet:document.getElementById("maxBetInput").value.replace(/\./g,""),minPleno:document.getElementById("minPlenoInput").value.replace(/\./g,""),maxPleno:document.getElementById("maxPlenoInput").value.replace(/\./g,"")};localStorage.setItem("gameLimits",JSON.stringify(e));showToast("Límites del juego guardados.",!0);if(typeof onConfigChanged==='function')onConfigChanged();}
     function changeTournament(){const e=document.getElementById("tournamentSelector").value,t=TOURNAMENTS[e];localStorage.setItem("selectedTournament",e),document.getElementById("mainTournamentTitle").textContent=t.name;const headerEl=document.getElementById('headerTournamentName');if(headerEl)headerEl.textContent=t.name;const o=document.getElementById("pokerBlackjackConfig"),n=document.getElementById("rouletteLimitsConfig");o.classList.toggle("hidden","cards"!==t.type),n.classList.toggle("hidden","roulette"!==t.type),document.getElementById("rouletteConfig").classList.toggle("hidden","roulette"!==t.type),document.getElementById("chipConfigSection").classList.toggle("hidden","cards"!==t.type);const l=document.getElementById("tournamentDate").value;if(l){const[y,m,d]=l.split("-");const date=new Date(y,m-1,d);const formatted=date.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());document.getElementById("mainDateDisplay").textContent=`Fecha del Torneo: ${formatted}`}else{document.getElementById("mainDateDisplay").textContent="Fecha no definida"}selectedIndices=[],showClassificationView(),renderClients(e),initializeSortable();if(typeof onConfigChanged==='function')onConfigChanged();}
@@ -1447,6 +1501,7 @@
         
         // REFRESCAR CONFIGURACIÓN
         changeTournament();
+        startClosingTimer();
 
         // PERSISTENCIA DE ROL (OPERADOR TAMBIÉN PERSISTE) Y VISTA
         const savedRole = localStorage.getItem('syncRole');
@@ -1809,6 +1864,7 @@
         setF('tournamentDate',    s.date,              true);
         setF('tournamentDirector',s.director,          true);
         setF('registrationEndTime',s.endTime,          true);
+        updateClosingTimeBadge();
         setF('rouletteBallCount', s.rouletteBallCount, true);
         setF('prizePoolInput',    s.prizePool,         false);
         var p=s.prizes||{};
