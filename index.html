@@ -763,11 +763,23 @@
 
     async function gasWrite(op, data) {
         var json = JSON.stringify(data);
-        var url = SCRIPT_URL + '?action=write&op=' + encodeURIComponent(op)
-                + '&data=' + encodeURIComponent(json)
-                + '&nocache=' + Date.now();
+        var url = SCRIPT_URL + '?action=write&op=' + encodeURIComponent(op) + '&nocache=' + Date.now();
         if (typeof syncLog === 'function') syncLog('→ GAS write: '+op+' ('+json.length+'b)', '#e9c400');
-        var resp = await fetch(url, {method:'GET', redirect:'follow', cache:'no-cache'});
+        var fetchOptions;
+        // Payloads grandes (saveTournament) van por POST para no reventar el límite de URL de GAS
+        if (json.length > 1500) {
+            fetchOptions = {
+                method: 'POST',
+                redirect: 'follow',
+                cache: 'no-cache',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'data=' + encodeURIComponent(json)
+            };
+        } else {
+            url += '&data=' + encodeURIComponent(json);
+            fetchOptions = {method:'GET', redirect:'follow', cache:'no-cache'};
+        }
+        var resp = await fetch(url, fetchOptions);
         var text = await resp.text();
         if (typeof syncLog === 'function') syncLog('← '+text.substring(0,100), '#bac9cc');
         var result = JSON.parse(text);
