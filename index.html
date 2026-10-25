@@ -1600,6 +1600,7 @@
     var SYNC_ROLE = localStorage.getItem('syncRole') || 'off'; // LOCALSTORAGE PARA PERSISTENCIA
     var syncPullInterval = null;
     var syncPushTimer = null;
+    var pushIsRunning = false;
     var lastPushTime = 0;
     var lastSyncTimestamp = '';
     var lastNotifiedTimestamp = '';
@@ -1807,7 +1808,14 @@
                 syncLog('⚠️ Pull ignorado: Sheets envió lista vacía pero hay '+existingClients.length+' clientes locales', '#ef4444');
             }
         }
-        if(s.finalists) raw.call(localStorage,'finalistas_'+tid,  JSON.stringify(s.finalists));
+        if(s.finalists) {
+            var existingFinalists = JSON.parse(localStorage.getItem('finalistas_'+tid) || '[]');
+            if (s.finalists.length > 0 || existingFinalists.length === 0) {
+                raw.call(localStorage,'finalistas_'+tid, JSON.stringify(s.finalists));
+            } else {
+                syncLog('⚠️ Pull ignorado: finalistas vacíos de Sheets pero existen localmente', '#e9c400');
+            }
+        }
 
         // Aplicar estado de vista remoto
         if(s.tournamentViewState){
@@ -1866,6 +1874,7 @@
         clearTimeout(syncPushTimer);
         syncPushTimer = setTimeout(async function() {
             syncPushTimer = null;
+            pushIsRunning = true;
             try {
                 setSyncIndicator('push','Guardando...');
                 var payload = buildPayload(actionInfo);
@@ -1880,12 +1889,14 @@
                 }
             } catch(err) {
                 setSyncIndicator('err','Sin red');
+            } finally {
+                pushIsRunning = false;
             }
         }, 800);
     }
 
     async function doPull() {
-        if (syncPushTimer !== null) return;
+        if (syncPushTimer !== null || pushIsRunning) return;
         if (lastPushTime > 0 && (Date.now() - lastPushTime) < 3500) return;
         try {
             var url = SCRIPT_URL + '?action=syncPull&nocache=' + Date.now();
