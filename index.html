@@ -644,19 +644,19 @@
                         </button>
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-2 items-start relative">
-                    <div class="relative flex-grow w-full sm:min-w-[180px]">
+                <div class="grid grid-cols-2 gap-2 relative">
+                    <div class="relative">
                         <input type="text" id="addNombre" placeholder="Buscar por Nombre o RUT" class="p-2 rounded-lg w-full text-sm">
                         <div id="searchResults" class="hidden absolute left-0 top-full mt-1 w-full min-w-[280px] bg-[#1a1b22] border border-[#4a5568] rounded-xl shadow-2xl z-[100] text-sm overflow-hidden max-h-64 overflow-y-auto"></div>
                     </div>
-                    <input type="text" id="addApellido" placeholder="Apellido" class="flex-grow p-2 rounded-lg w-full sm:min-w-[180px] text-sm">
-                    <input type="text" id="addRut" placeholder="RUT (si no existe)" oninput="formatRut(this)" maxlength="12" class="flex-grow p-2 rounded-lg w-full sm:min-w-[180px] text-sm hidden">
-                    <select id="addTipoCupon" class="flex-grow p-2 rounded-lg w-full sm:min-w-[160px] text-sm">
+                    <input type="text" id="addApellido" placeholder="Apellido" class="p-2 rounded-lg w-full text-sm">
+                    <input type="text" id="addRut" placeholder="RUT (si no existe)" oninput="formatRut(this)" maxlength="12" class="p-2 rounded-lg w-full text-sm hidden">
+                    <select id="addTipoCupon" class="p-2 rounded-lg w-full text-sm">
                         <option value="ninguno">Ninguno</option>
                         <option value="sorteo">Cupón Sorteo (CS)</option>
                         <option value="canje">Ticket Canje (TC)</option>
                     </select>
-                    <button id="addButton" onclick="addClientToTournament()" class="bg-primary-fixed-dim text-on-primary px-5 py-2 rounded-lg font-headline font-bold text-sm hover:brightness-110 transition-all active:scale-95 w-full sm:w-auto">
+                    <button id="addButton" onclick="addClientToTournament()" class="bg-primary-fixed-dim text-on-primary px-5 py-2 rounded-lg font-headline font-bold text-sm hover:brightness-110 transition-all active:scale-95 w-full">
                         Añadir
                     </button>
                 </div>
