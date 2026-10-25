@@ -362,6 +362,20 @@
                 <div><label for="secondPrize" class="block font-bold mb-1">2do Lugar $:</label><input type="text" id="secondPrize" placeholder="Ej: 150.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); savePrizes();"></div>
                 <div><label for="thirdPrize" class="block font-bold mb-1">3er Lugar $:</label><input type="text" id="thirdPrize" placeholder="Ej: 100.000" class="p-2 border rounded-md w-full" oninput="formatNumericInput(this); savePrizes();"></div>
             </div>
+            <div class="border-t border-gray-200 pt-4 mt-2 mb-4">
+                <h3 class="text-xl font-bold mb-4 text-blue-900 border-b pb-2">Pantalla de Torneo</h3>
+                <div>
+                    <label class="block font-bold text-lg mb-2">Efecto Tarjeta Pozo:</label>
+                    <select id="prizeEffectSelect" class="p-2 border rounded-md w-full" onchange="savePrizeEffect()">
+                        <option value="flip">🔄 Giro 3D (Flip)</option>
+                        <option value="fade">✨ Desvanecimiento (Fade)</option>
+                        <option value="slide">⬅️ Deslizar (Slide)</option>
+                        <option value="zoom">🔍 Zoom</option>
+                        <option value="blur">💨 Desenfoque (Blur)</option>
+                        <option value="bounce">💥 Rebote (Bounce)</option>
+                    </select>
+                </div>
+            </div>
             <div id="gameSpecificConfig">
                 <h3 class="text-xl font-bold mb-4 text-blue-900 border-b pb-2">Límites del Juego</h3>
                 <div id="pokerBlackjackConfig" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 hidden">
@@ -1064,8 +1078,9 @@
         document.getElementById('rutModal').style.display = 'flex';
     }
     function closeRutModal() { document.getElementById('rutModal').style.display = 'none'; }
-    function openConfigModal(){renderChipConfig(),document.getElementById("configModal").style.display="flex"}
+    function openConfigModal(){renderChipConfig();const ef=document.getElementById("prizeEffectSelect");if(ef)ef.value=localStorage.getItem("prizeCardEffect")||"flip";document.getElementById("configModal").style.display="flex";}
     function closeConfigModal(){document.getElementById("configModal").style.display="none"}
+    function savePrizeEffect(){localStorage.setItem("prizeCardEffect",document.getElementById("prizeEffectSelect").value);showToast("Efecto del pozo guardado.",true);if(typeof onConfigChanged==="function")onConfigChanged();}
     // Colores estándar de fichas de casino
     const GITHUB_FICHAS = 'https://raw.githubusercontent.com/33Javier33/TORNEO_PTO-VARAS/main/fichas/';
     const CHIP_PRESETS = [

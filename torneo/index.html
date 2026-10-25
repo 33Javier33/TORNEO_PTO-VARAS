@@ -44,6 +44,8 @@
     <style>
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 
+        html { font-size: 20px; }
+
         body {
             background-color: #121319;
             color: #e3e1ea;
@@ -165,8 +167,18 @@
         ::-webkit-scrollbar-track { background: #0d0e14; }
         ::-webkit-scrollbar-thumb { background: #3b494c; border-radius: 99px; }
 
-        #prize-card-content { position:relative; width:100%; height:100%; transition:transform 0.6s; transform-style:preserve-3d; }
-        .prize-exiting { transform:rotateY(180deg); }
+        #prize-card-content {
+            position:relative; width:100%; height:100%;
+            transition: transform 0.35s ease-in-out, opacity 0.35s ease-in-out, filter 0.35s ease-in-out;
+            transform-style: preserve-3d;
+        }
+        /* Efectos de salida del pozo */
+        .prize-exit-flip   { transform: rotateY(90deg); opacity: 0; }
+        .prize-exit-fade   { opacity: 0; }
+        .prize-exit-slide  { transform: translateX(-130%); opacity: 0; }
+        .prize-exit-zoom   { transform: scale(0.05); opacity: 0; }
+        .prize-exit-blur   { filter: blur(12px); opacity: 0; }
+        .prize-exit-bounce { transform: scale(1.5) rotate(10deg); opacity: 0; }
     </style>
 </head>
 <body class="bg-surface-dim text-on-surface font-body min-h-screen flex flex-col">
@@ -412,6 +424,7 @@
         function updatePrizeCard() {
             const prizes = JSON.parse(localStorage.getItem('tournamentPrizes') || '{}');
             const prizePool = parseInt(localStorage.getItem('prizePool') || '0');
+            const effect = localStorage.getItem('prizeCardEffect') || 'flip';
             const contentEl = document.getElementById('prize-card-content');
             if (!contentEl) return;
             const views = [
@@ -421,11 +434,12 @@
                 { title: '🥇 1er Puesto', value: `$${formatNumber(prizes.first || 0)}`, color: 'text-secondary-fixed-dim' }
             ];
             const currentView = views[prizeViewIndex];
-            contentEl.classList.add('prize-exiting');
+            const exitClass = `prize-exit-${effect}`;
+            contentEl.classList.add(exitClass);
             setTimeout(() => {
-                contentEl.innerHTML = `<p class="text-[10px] font-label text-on-surface-variant uppercase tracking-[0.2em] mb-0.5 font-bold">${currentView.title}</p><p class="font-headline text-xl font-bold ${currentView.color}">${currentView.value}</p>`;
-                contentEl.classList.remove('prize-exiting');
-            }, 300);
+                contentEl.innerHTML = `<p class="text-xs font-label text-on-surface-variant uppercase tracking-[0.2em] mb-1 font-bold">${currentView.title}</p><p class="font-headline text-2xl font-bold ${currentView.color}">${currentView.value}</p>`;
+                contentEl.classList.remove(exitClass);
+            }, 350);
             prizeViewIndex = (prizeViewIndex + 1) % views.length;
         }
         
