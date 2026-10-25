@@ -1745,7 +1745,14 @@
 
         if(role==='supervisor'||role==='operador'){
             setSyncIndicator('push','Conectando...');
-            schedulePush(null);
+            // Solo push automático si hay datos locales — evita pisar Sheets con localStorage vacío
+            var tid0 = (document.getElementById('tournamentSelector')||{}).value
+                       || localStorage.getItem('selectedTournament') || 'ruleta';
+            if (getClientesTorneo(tid0).length > 0) {
+                schedulePush(null);
+            } else {
+                syncLog('Conexión sin push — esperando datos de Sheets...', '#e9c400');
+            }
         } else {
             setSyncIndicator('pull','Esperando...');
         }
@@ -1790,7 +1797,16 @@
         raw.call(localStorage,'gameLimits',           JSON.stringify(s.limits||{}));
         raw.call(localStorage,'rouletteBallCount',    s.rouletteBallCount||'3');
         if(s.chips)     raw.call(localStorage,'tournament_chips', JSON.stringify(s.chips));
-        if(s.clients)   raw.call(localStorage,'clientes_'+tid,    JSON.stringify(s.clients));
+        if(s.clients) {
+            var existingClients = JSON.parse(localStorage.getItem('clientes_'+tid) || '[]');
+            var isIntentionalClear = s.lastAction && s.lastAction.type === 'delete'
+                                     && (s.lastAction.description||'').indexOf('limpiada') !== -1;
+            if (s.clients.length > 0 || existingClients.length === 0 || isIntentionalClear) {
+                raw.call(localStorage,'clientes_'+tid, JSON.stringify(s.clients));
+            } else {
+                syncLog('⚠️ Pull ignorado: Sheets envió lista vacía pero hay '+existingClients.length+' clientes locales', '#ef4444');
+            }
+        }
         if(s.finalists) raw.call(localStorage,'finalistas_'+tid,  JSON.stringify(s.finalists));
 
         // Aplicar estado de vista remoto
